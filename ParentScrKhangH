@@ -1,0 +1,51 @@
+local Players = game:GetService("Players")
+
+-- GUI
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "UserMonitorGUI"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 250, 0, 300)
+frame.Position = UDim2.new(0, 10, 0.5, -150)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundTransparency = 0.2
+
+local toggle = Instance.new("TextButton", frame)
+toggle.Size = UDim2.new(1, 0, 0, 30)
+toggle.Text = "👁 Hiện người dùng"
+toggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+toggle.TextColor3 = Color3.new(1, 1, 1)
+
+local list = Instance.new("TextLabel", frame)
+list.Position = UDim2.new(0, 0, 0, 30)
+list.Size = UDim2.new(1, 0, 1, -30)
+list.Text = "Chưa ai dùng script..."
+list.TextWrapped = true
+list.TextYAlignment = Enum.TextYAlignment.Top
+list.TextXAlignment = Enum.TextXAlignment.Left
+list.TextColor3 = Color3.new(1,1,1)
+list.BackgroundTransparency = 1
+list.Visible = false
+
+toggle.MouseButton1Click:Connect(function()
+	list.Visible = not list.Visible
+	toggle.Text = list.Visible and "🙈 Ẩn người dùng" or "👁 Hiện người dùng"
+end)
+
+-- ⚡ Quét lại mỗi 10s
+task.spawn(function()
+	while true do
+		task.wait(10)
+		local names = {}
+		for _, p in ipairs(Players:GetPlayers()) do
+			if p:GetAttribute("UsingMyScript") then
+				table.insert(names, p.Name)
+			end
+		end
+		if #names > 0 then
+			list.Text = table.concat(names, "\n")
+		else
+			list.Text = "Chưa ai dùng script..."
+		end
+	end
+end)

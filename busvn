@@ -1,3 +1,17 @@
+-- Kiểm tra ID game
+if game.PlaceId ~= 13705777238 then
+    return warn("Script only works in the specified game (ID: 13705777238){Bus Driver Vietnam 2}")
+end
+
+-- Thông báo khi đúng ID game
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "✓ Game Check Passed",
+    Text = "Script is now executing...",
+    Duration = 5
+})
+
+task.wait(1) -- Đợi 1s trước khi thực thi 
+
 task.spawn(function()
     -- Láº¥y dá»‹ch vá»¥ cáº§n thiáº¿t
     local Players = game:GetService("Players")

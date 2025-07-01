@@ -1,0 +1,100 @@
+task.spawn(function()
+    -- Láº¥y dá»‹ch vá»¥ cáº§n thiáº¿t
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local CoreGui = game:GetService("CoreGui")
+    local TweenService = game:GetService("TweenService")
+
+    -- Táº¡o GUI
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = CoreGui
+    ScreenGui.ResetOnSpawn = false
+
+    -- Táº¡o nĂºt Toggle Auto Farm
+    local AutoFarmButton = Instance.new("TextButton")
+    AutoFarmButton.Parent = ScreenGui
+    AutoFarmButton.Size = UDim2.new(0, 100, 0, 50)  -- KĂ­ch thÆ°á»›c 100x50
+    AutoFarmButton.Position = UDim2.new(0.5, -50, 0.5, -25)  -- Giá»¯a mĂ n hĂ¬nh
+    AutoFarmButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)  -- MĂ u xanh lĂ¡ (Báº­t)
+    AutoFarmButton.BackgroundTransparency = 0.3  
+    AutoFarmButton.TextColor3 = Color3.fromRGB(255, 255, 255)  
+    AutoFarmButton.Text = "Auto Farm: OFF"
+    AutoFarmButton.TextSize = 14
+    AutoFarmButton.Font = Enum.Font.SourceSansBold
+    AutoFarmButton.Draggable = true  -- Cho phĂ©p kĂ©o trĂªn mobile
+    AutoFarmButton.AutoButtonColor = false
+
+    -- Bo trĂ²n gĂ³c
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0.2, 0)  
+    UICorner.Parent = AutoFarmButton
+
+    -- Biáº¿n tráº¡ng thĂ¡i
+    local autoFarmEnabled = false
+
+    -- HĂ m dá»‹ch chuyá»ƒn
+    local function teleportToPosition(x, y, z)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(x, y, z)
+        end
+    end
+
+    -- HĂ m click nĂºt gáº§n nháº¥t
+    local function clickNearestPrompt()
+        local character = LocalPlayer.Character
+        if not character then return end
+
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if not rootPart then return end
+
+        local closestPrompt
+        local shortestDistance = math.huge
+
+        for _, descendant in pairs(workspace:GetDescendants()) do
+            if descendant:IsA("ProximityPrompt") then
+                local promptPosition = descendant.Parent and descendant.Parent:IsA("BasePart") and descendant.Parent.Position
+                if promptPosition then
+                    local distance = (rootPart.Position - promptPosition).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        closestPrompt = descendant
+                    end
+                end
+            end
+        end
+
+        if closestPrompt then
+            closestPrompt:InputHoldBegin()
+            task.wait(0.1)
+            closestPrompt:InputHoldEnd()
+        end
+    end
+
+    -- VĂ²ng láº·p Auto Farm
+    local function autoFarmLoop()
+        while autoFarmEnabled do
+            teleportToPosition(808.00, 3.10, -219.00)
+            task.wait(0.2)
+
+            clickNearestPrompt()
+            task.wait(0.3)
+
+            teleportToPosition(19048.00, 66.10, 666.00)
+            task.wait(0.3)
+        end
+    end
+
+    -- Xá»­ lĂ½ khi báº¥m nĂºt Toggle
+    AutoFarmButton.MouseButton1Click:Connect(function()
+        autoFarmEnabled = not autoFarmEnabled
+
+        if autoFarmEnabled then
+            AutoFarmButton.Text = "Auto Farm: ON"
+            AutoFarmButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)  -- Äá»•i thĂ nh mĂ u Ä‘á» (Äang cháº¡y)
+            task.spawn(autoFarmLoop)  -- Cháº¡y vĂ²ng láº·p Auto Farm
+        else
+            AutoFarmButton.Text = "Auto Farm: OFF"
+            AutoFarmButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)  -- Trá»Ÿ láº¡i mĂ u xanh lĂ¡ (Táº¯t)
+        end
+    end)
+end)

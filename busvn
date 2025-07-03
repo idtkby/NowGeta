@@ -13,6 +13,10 @@ game:GetService("StarterGui"):SetCore("SendNotification", {
 task.wait(1) -- Đợi 1s trước khi thực thi 
 
 task.spawn(function()
+print("----    ---- ----    ----    ------    ----    ---- ------------ ") print("****   ****  ****    ****   ********   *****   **** ************ ") print("----  ----   ----    ----  ----------  ------  ---- ----         ") print("*********    ************ ****    **** ************ ****  ****** ") print("---------    ------------ ------------ ------------ ----  ------ ") print("****  ****   ****    **** ************ ****  ****** ****    **** ") print("----   ----  ----    ---- ----    ---- ----   ----- ------------ ") print("****    **** ****    **** ****    **** ****    **** ************ ")                                                                  
+end)
+
+task.spawn(function()
     -- Láº¥y dá»‹ch vá»¥ cáº§n thiáº¿t
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer

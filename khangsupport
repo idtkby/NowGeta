@@ -77,6 +77,6 @@ local queueteleport = queue_on_teleport or queue_on_teleport or syn and syn.queu
 Players.LocalPlayer.OnTeleport:Connect(function(State)
 	if KeepInfYield and not TeleportCheck and queueteleport then
 		TeleportCheck = true
-		queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/idtkby/Xd/main/GameSupportGamehub'))()")
+		queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/idtkby/NowGeta/main/khangsupport'))()")
 	end
 end)

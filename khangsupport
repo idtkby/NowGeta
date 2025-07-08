@@ -1,0 +1,82 @@
+if game.PlaceId == 70876832253163 then -- Dead Rails (Alpha)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Waiting...",
+    Text = "Loading Dead Rails...",
+    Duration = 5
+})
+wait(0.3)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/Dead%20rails%20hub"))()
+elseif game.PlaceId == 115345163333015 or game.PlaceId == 1985320156 then -- Eyes
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Waiting...",
+    Text = "Loading Eyes...",
+    Duration = 5
+})
+wait(0.3)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/Eyes%20hub"))()
+elseif game.PlaceId == 121308443347459 then -- 7 Days To Live
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Waiting...",
+    Text = "Loading 7 Days...",
+    Duration = 5
+})
+wait(0.3)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/7DaysForest"))()
+
+
+elseif game.PlaceId == 116387287343653 then -- Peta School
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Waiting...",
+    Text = "Loading PETA School...",
+    Duration = 5
+})
+wait(0.3)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/PETAPETA%3A%20School%20of%20Nightmares%20UI"))() 
+
+
+elseif game.PlaceId == 14476003462 then -- Peta lv 6
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Waiting...",
+    Text = "Loading PETA Lv6...",
+    Duration = 5
+})
+wait(0.3)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/PETAPETA%7C%20Level%206%20UI"))()
+
+
+elseif game.PlaceId == 104592421039274 then -- AOONI Nightmare
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Waiting...",
+    Text = "Loading AOONI...",
+    Duration = 5
+})
+wait(0.3)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/AOONI%20Nightmare%20UI"))() 
+
+
+else
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/KhangHub"))() -- Game Hub (Ko dính id game nào)
+end
+
+--[[
+elseif game.PlaceId == 0000 or game.PlaceId == 0000 or game.PlaceId == 0000 then
+]]
+
+
+
+
+
+-- Điều kiện: bạn phải đang sử dụng Executor hỗ trợ `queueteleport`
+-- Ví dụ: KRNL, Synapse X đều hỗ trợ
+
+local Players = game:GetService("Players")
+local TeleportCheck = false
+local KeepInfYield = true -- ← Gán biến này là true để bật tính năng
+local queueteleport = queue_on_teleport or queue_on_teleport or syn and syn.queue_on_teleport -- Phổ biến nhất
+
+Players.LocalPlayer.OnTeleport:Connect(function(State)
+	if KeepInfYield and not TeleportCheck and queueteleport then
+		TeleportCheck = true
+		queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/idtkby/Xd/main/GameSupportGamehub'))()")
+	end
+end)

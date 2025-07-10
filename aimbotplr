@@ -25,7 +25,7 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Size = UDim2.new(0, 130, 0, 45)
-ToggleButton.Position = UDim2.new(0, 1050, 0, 10)
+ToggleButton.Position = UDim2.new(0, 10, 0, 10)
 ToggleButton.Text = "AIMBOT: OFF"
 ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 ToggleButton.TextColor3 = Color3.fromRGB(255, 50, 50)

@@ -1,0 +1,156 @@
+-- Tạo GUI cho việc hiển thị tọa độ
+task.spawn(function()
+print("----    ---- ----    ----    ------    ----    ---- ------------ ") print("****   ****  ****    ****   ********   *****   **** ************ ") print("----  ----   ----    ----  ----------  ------  ---- ----         ") print("*********    ************ ****    **** ************ ****  ****** ") print("---------    ------------ ------------ ------------ ----  ------ ") print("****  ****   ****    **** ************ ****  ****** ****    **** ") print("----   ----  ----    ---- ----    ---- ----   ----- ------------ ") print("****    **** ****    **** ****    **** ****    **** ************ ")                                                                  
+end)
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Tạo GUI màn hình
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "LocationDisplay"
+screenGui.Parent = game.CoreGui
+
+-- Tạo TextLabel để hiển thị tọa độ
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(0, 400, 0, 50) -- Kích thước
+textLabel.Position = UDim2.new(0.5, -200, 0.025, 0) -- Vị trí
+textLabel.BackgroundColor3 = Color3.new(0, 0, 0) -- Màu nền đen
+textLabel.BackgroundTransparency = 0.5 -- Độ trong suốt
+textLabel.TextColor3 = Color3.new(1, 1, 1) -- Màu chữ trắng
+textLabel.TextScaled = true -- Tự động chỉnh kích thước chữ
+textLabel.Text = "X: 0, Y: 0, Z: 0" -- Văn bản mặc định
+textLabel.Parent = screenGui
+
+-- Tạo nút Copy tọa độ
+local copyButton = Instance.new("TextButton")
+copyButton.Size = UDim2.new(0, 400, 0, 25) -- Kích thước nút
+copyButton.Position = UDim2.new(0.125, -50, 1.1, 0) -- Vị trí nút copy dưới textLabel
+copyButton.BackgroundColor3 = Color3.new(0, 0, 0)
+copyButton.BackgroundTransparency = 0.5  -- Đặt độ trong suốt là 0.5
+copyButton.TextColor3 = Color3.new(1, 1, 1)
+copyButton.Text = "Copy"
+copyButton.TextScaled = true
+copyButton.Parent = textLabel  -- Đặt nút copy là con của textLabel, làm cho chúng dính vào nhau
+
+-- Tạo nút Xóa GUI kế bên phải
+local deleteButton = Instance.new("TextButton")
+deleteButton.Size = UDim2.new(0, 50, 0, 80) -- Kích thước nút
+deleteButton.Position = UDim2.new(1.0125, 0, 0, 0) -- Vị trí nút xóa bên phải
+deleteButton.BackgroundColor3 = Color3.new(1, 0, 0) -- Màu nền đỏ
+deleteButton.BackgroundTransparency = 0.5  -- Đặt độ trong suốt là 0.5
+deleteButton.TextColor3 = Color3.new(1, 1, 1)
+deleteButton.Text = "X"
+deleteButton.TextScaled = true
+deleteButton.Parent = textLabel  -- Đặt nút xóa bên cạnh textLabel
+
+-- Hàm sao chép tọa độ vào clipboard và thay đổi văn bản nút
+copyButton.MouseButton1Click:Connect(function()
+    local position = humanoidRootPart.Position
+    local coords = string.format("%.2f, %.2f, %.2f", position.X, position.Y, position.Z)
+    -- Sao chép tọa độ vào clipboard (PC)
+    setclipboard(coords)
+
+    -- Thay đổi văn bản nút thành "Đã sao chép" và sau 2 giây đổi lại thành "Copy"
+    copyButton.Text = "Copied"
+    wait(2)
+    copyButton.Text = "Copy"
+end)
+
+-- Hàm xóa GUI khi nhấn nút "Xóa GUI"
+deleteButton.MouseButton1Click:Connect(function()
+    screenGui:Destroy()  -- Xóa toàn bộ GUI
+end)
+
+-- Cập nhật tọa độ khi người chơi di chuyển
+game:GetService("RunService").RenderStepped:Connect(function()
+    -- Lấy tọa độ hiện tại của HumanoidRootPart
+    local position = humanoidRootPart.Position
+    -- Cập nhật văn bản hiển thị tọa độ
+    textLabel.Text = string.format("%.2f, %.2f, %.2f", position.X, position.Y, position.Z)
+end)
+
+-- Đảm bảo khi nhân vật mới được thêm vào thì sẽ theo dõi vị trí mới
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+end)
+
+-- Tạo khả năng kéo (drag) GUI trên màn hình (Mobile Dragging)
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+local function startDrag(input)
+    dragging = true
+    dragStart = input.Position
+    startPos = textLabel.Position
+end
+
+local function updateDrag(input)
+    if dragging then
+        local delta = input.Position - dragStart
+        textLabel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end
+
+local function stopDrag()
+    dragging = false
+end
+
+-- Gắn sự kiện cho TextLabel để kéo trên Mobile (Mobile Drag)
+textLabel.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        startDrag(input)
+    end
+end)
+
+textLabel.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        updateDrag(input)
+    end
+end)
+
+textLabel.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        stopDrag()
+    end
+end)
+
+-- Gắn sự kiện cho copyButton để kéo (nếu cần)
+copyButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        startDrag(input)
+    end
+end)
+
+copyButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        updateDrag(input)
+    end
+end)
+
+copyButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        stopDrag()
+    end
+end)
+
+-- Gắn sự kiện cho deleteButton để kéo (nếu cần)
+deleteButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        startDrag(input)
+    end
+end)
+
+deleteButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        updateDrag(input)
+    end
+end)
+
+deleteButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        stopDrag()
+    end
+end)

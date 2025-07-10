@@ -1,0 +1,193 @@
+task.spawn(function() -- Made by Khang
+local fov = 150
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Cam = workspace.CurrentCamera
+local Player = game:GetService("Players").LocalPlayer
+local Players = game:GetService("Players")
+
+-- VĂ²ng trĂ²n FOV
+local FOVring = Drawing.new("Circle")
+FOVring.Visible = false
+FOVring.Thickness = 2
+FOVring.Color = Color3.fromRGB(128, 0, 128)
+FOVring.Filled = false
+FOVring.Radius = fov
+FOVring.Position = Cam.ViewportSize / 2
+
+local isAiming = false
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+-- Giao diá»‡n
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 130, 0, 45)
+ToggleButton.Position = UDim2.new(0, 1050, 0, 10)
+ToggleButton.Text = "AIMBOT: OFF"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ToggleButton.TextColor3 = Color3.fromRGB(255, 50, 50)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 14
+ToggleButton.Parent = ScreenGui
+
+-- Hiá»ƒn thá»‹ tĂªn má»¥c tiĂªu
+local NameLabel = Instance.new("TextLabel")
+NameLabel.Size = UDim2.new(0, 250, 0, 30)
+NameLabel.Position = UDim2.new(1, -250 - 10, 1, -40)
+NameLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+NameLabel.Text = "Target: None"
+NameLabel.TextSize = 14
+NameLabel.Font = Enum.Font.GothamBold
+NameLabel.Parent = ScreenGui
+
+-- Ă‚m thanh
+local Sound = Instance.new("Sound", game.SoundService)
+Sound.SoundId = "rbxassetid://6026984224"
+
+-- Cáº­p nháº­t vá»‹ trĂ­ FOV
+local function updateDrawings()
+	FOVring.Position = Cam.ViewportSize / 2
+	FOVring.Radius = fov * (Cam.ViewportSize.Y / 1080)
+end
+
+-- TĂ¬m player gáº§n nháº¥t há»£p lá»‡
+local function getTarget()
+	local nearest, minDistance = nil, math.huge
+	local viewportCenter = Cam.ViewportSize / 2
+	raycastParams.FilterDescendantsInstances = {Player.Character}
+
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= Player and (not Player.Team or not plr.Team or plr.Team ~= Player.Team)
+		and plr.Character and plr.Character:FindFirstChild("Head")
+		and plr.Character:FindFirstChild("Humanoid")
+		and plr.Character.Humanoid.Health > 0 then
+
+			local head = plr.Character.Head
+			local screenPos, visible = Cam:WorldToViewportPoint(head.Position)
+			if visible and screenPos.Z > 0 then
+				local ray = workspace:Raycast(Cam.CFrame.Position, (head.Position - Cam.CFrame.Position).Unit * 1000, raycastParams)
+				if ray and ray.Instance:IsDescendantOf(plr.Character) then
+					local distance = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
+					if distance < minDistance and distance < fov then
+						minDistance = distance
+						nearest = plr
+					end
+				end
+			end
+		end
+	end
+	return nearest
+end
+
+-- Äiá»u chá»‰nh camera
+local function aim(pos)
+	local currentCF = Cam.CFrame
+	local dir = (pos - currentCF.Position).Unit
+	local smooth = 0.65
+	local newLook = currentCF.LookVector:Lerp(dir, smooth)
+	Cam.CFrame = CFrame.new(currentCF.Position, currentCF.Position + newLook)
+end
+
+-- HĂ m Ä‘iá»u chá»‰nh kĂ­ch thÆ°á»›c vÄƒn báº£n
+local function adjustTextSize()
+	local maxTextWidth = NameLabel.AbsoluteSize.X
+	local textWidth = NameLabel.TextBounds.X
+	if textWidth > maxTextWidth then
+		local scale = maxTextWidth / textWidth
+		NameLabel.TextSize = math.max(14 * scale, 10)
+	else
+		NameLabel.TextSize = 14
+	end
+end
+
+-- VĂ²ng láº·p chĂ­nh
+RunService.Heartbeat:Connect(function()
+	updateDrawings()
+	if isAiming then
+		local target = getTarget()
+		if target and target.Character and target.Character:FindFirstChild("Head") then
+			aim(target.Character.Head.Position)
+			local hp = string.format("%.1f", target.Character:FindFirstChild("Humanoid").Health)
+			NameLabel.Text = "Target: " .. target.Name .. " | HP: " .. hp
+		else
+			NameLabel.Text = "Target: None"
+		end
+	else
+		NameLabel.Text = "Target: None"
+	end
+	adjustTextSize()
+end)
+
+-- Báº­t/táº¯t aimbot
+ToggleButton.MouseButton1Click:Connect(function()
+	isAiming = not isAiming
+	FOVring.Visible = isAiming
+	ToggleButton.Text = "AIMBOT: " .. (isAiming and "ON" or "OFF")
+	ToggleButton.TextColor3 = isAiming and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+	Sound:Play()
+end)
+
+-- KĂ©o tháº£ nĂºt
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+	local delta = input.Position - dragStart
+	local newX = math.clamp(startPos.X.Offset + delta.X, 0, Cam.ViewportSize.X - ToggleButton.AbsoluteSize.X)
+	local newY = math.clamp(startPos.Y.Offset + delta.Y, 0, Cam.ViewportSize.Y - ToggleButton.AbsoluteSize.Y)
+	ToggleButton.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
+end
+
+ToggleButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = ToggleButton.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then dragging = false end
+		end)
+	end
+end)
+
+ToggleButton.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+end)
+
+
+task.spawn(function()
+local player = game:GetService("Players").LocalPlayer
+
+-- Giữ DevTouchCameraMode luôn là Classic
+local function setTouchCamera()
+    if player then
+        player.DevTouchCameraMode = Enum.DevTouchCameraMovementMode.Classic
+    end
+end
+
+setTouchCamera()
+player:GetPropertyChangedSignal("DevTouchCameraMode"):Connect(setTouchCamera)
+end)
+
+-- Giữ DevComputerCameraMode luôn là Classic
+task.spawn(function()
+    local function setComputerCamera()
+        if player then
+            player.DevComputerCameraMode = Enum.DevComputerCameraMovementMode.Classic
+        end
+    end
+
+    setComputerCamera()
+    player:GetPropertyChangedSignal("DevComputerCameraMode"):Connect(setComputerCamera)
+end)

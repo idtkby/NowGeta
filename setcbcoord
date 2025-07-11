@@ -1,0 +1,20 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function copyPosition()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then warn("Không tìm thấy HRP") return end
+
+    local pos = hrp.Position
+    local str = string.format("Vector3.new(%.2f, %.2f, %.2f)", pos.X, pos.Y, pos.Z)
+
+    if setclipboard then
+        setclipboard(str)
+        print("[Copied] " .. str)
+    else
+        warn("Executor không hỗ trợ setclipboard")
+    end
+end
+
+copyPosition()

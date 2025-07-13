@@ -43,6 +43,8 @@ NameLabel.Text = "Target: None"
 NameLabel.TextSize = 14
 NameLabel.Font = Enum.Font.GothamBold
 NameLabel.Parent = ScreenGui
+NameLabel.Active = true
+NameLabel.Draggable = true
 
 -- Ă‚m thanh
 local Sound = Instance.new("Sound", game.SoundService)

@@ -109,3 +109,7 @@ LocalPlayer.CharacterAdded:Connect(function()
 	task.wait(1)
 	setupAutoM1()
 end)
+
+--[[
+9179275187018728
+]]

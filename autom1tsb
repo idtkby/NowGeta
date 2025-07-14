@@ -5,7 +5,7 @@ end)
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
-local starterReaction = 0.015
+local starterReaction = 0.03
 local autoM1Enabled = false
 local reactionTime = starterReaction
 local hooked = false

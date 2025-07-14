@@ -1,0 +1,111 @@
+task.spawn(function()
+print("----    ---- ----    ----    ------    ----    ---- ------------ ") print("****   ****  ****    ****   ********   *****   **** ************ ") print("----  ----   ----    ----  ----------  ------  ---- ----         ") print("*********    ************ ****    **** ************ ****  ****** ") print("---------    ------------ ------------ ------------ ----  ------ ") print("****  ****   ****    **** ************ ****  ****** ****    **** ") print("----   ----  ----    ---- ----    ---- ----   ----- ------------ ") print("****    **** ****    **** ****    **** ****    **** ************ ")                                                                  
+end)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local starterReaction = 0.015
+local autoM1Enabled = false
+local reactionTime = starterReaction
+local hooked = false
+
+-- Tạo GUI
+local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "AutoM1Gui"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Position = UDim2.new(0, 30, 0.5, -60)
+frame.Size = UDim2.new(0, 180, 0, 100)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.Active = true
+frame.Draggable = true
+
+Instance.new("UICorner", frame)
+local stroke = Instance.new("UIStroke", frame)
+stroke.Thickness = 2
+stroke.Color = Color3.new(1, 1, 1)
+
+-- Nút Toggle
+local button = Instance.new("TextButton", frame)
+button.Size = UDim2.new(1, -20, 0, 40)
+button.Position = UDim2.new(0, 10, 0, 10)
+button.Text = "AutoM1: OFF"
+button.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.GothamBold
+button.TextScaled = true
+
+Instance.new("UICorner", button)
+
+-- Ô nhập thời gian phản ứng
+local textbox = Instance.new("TextBox", frame)
+textbox.Size = UDim2.new(1, -20, 0, 30)
+textbox.Position = UDim2.new(0, 10, 0, 60)
+textbox.PlaceholderText = "Reaction: " .. starterReaction
+textbox.Text = ""
+textbox.TextColor3 = Color3.new(1, 1, 1)
+textbox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+textbox.Font = Enum.Font.Gotham
+textbox.TextScaled = true
+
+Instance.new("UICorner", textbox)
+
+-- Toggle chức năng
+button.MouseButton1Click:Connect(function()
+	autoM1Enabled = not autoM1Enabled
+	button.Text = "AutoM1: " .. (autoM1Enabled and "ON" or "OFF")
+	button.BackgroundColor3 = autoM1Enabled and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(60, 0, 0)
+end)
+
+-- Cập nhật reactionTime nếu nhập số hợp lệ
+textbox.FocusLost:Connect(function()
+	local val = tonumber(textbox.Text)
+	if val and val >= 0 and val <= 1 then
+		reactionTime = val
+		textbox.PlaceholderText = "Reaction: " .. val
+		textbox.Text = ""
+	end
+end)
+
+-- Tạo hàm hook
+local function setupAutoM1()
+	if hooked then return end
+	hooked = true
+
+	local oldNamecall
+	oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+		local args = { ... }
+		local method = getnamecallmethod()
+		if not checkcaller() and autoM1Enabled and typeof(self) == "Instance" and self.Name == "Communicate" and method == "FireServer" and typeof(args[1]) == "table" then
+			local data = args[1]
+			if (data.Dash == Enum.KeyCode.A or data.Dash == Enum.KeyCode.D) and data.Key == Enum.KeyCode.Q and data.Goal == "KeyPress" then
+				task.delay(reactionTime, function()
+					if not autoM1Enabled then return end
+					local c = LocalPlayer.Character
+					local comm = c and c:FindFirstChild("Communicate")
+					if comm then
+						comm:FireServer({
+							Goal = "LeftClick",
+							Mobile = true
+						})
+						task.wait(0.01)
+						comm:FireServer({
+							Goal = "LeftClickRelease",
+							Mobile = true
+						})
+					end
+				end)
+			end
+		end
+		return oldNamecall(self, ...)
+	end)
+end
+
+-- Gọi ban đầu + khi nhân vật thay đổi
+setupAutoM1()
+LocalPlayer.CharacterAdded:Connect(function()
+	task.wait(1)
+	setupAutoM1()
+end)

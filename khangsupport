@@ -14,7 +14,7 @@ elseif game.PlaceId == 115345163333015 or game.PlaceId == 1985320156 then -- Eye
 })
 wait(0.3)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/Eyes%20hub"))()
-elseif game.PlaceId == 121308443347459 then -- 7 Days To Live
+elseif game.PlaceId == 121308443347459 or game.PlaceId == 17474746614 then -- 7 Days To Live
     game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Waiting...",
     Text = "Loading 7 Days...",

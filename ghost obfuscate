@@ -10,4 +10,8 @@ esp npc
 loadstring(game:HttpGet("https://protected-roblox-scripts.onrender.com/2fcffe76586374666e907a484cf431b8"))()
 74817690417
 wallhop
+---
+loadstring(game:HttpGet("https://protected-roblox-scripts.onrender.com/572f0c773562cb20348090fd39f0e037"))()
+6388462890
+sit, lay Gui
 --]]

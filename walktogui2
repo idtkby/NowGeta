@@ -95,7 +95,7 @@ toggleBtn.MouseButton1Click:Connect(function() frame.Visible = not frame.Visible
 
 -- Dropdown chọn player
 local dropdown = Instance.new("TextButton", frame)
-dropdown.Size = UDim2.new(1, 0, 0, 30)
+dropdown.Size = UDim2.new(1, 0, 0, 80)
 dropdown.Position = UDim2.new(0, 0, 0, -30)
 dropdown.Text = "Select Player"
 dropdown.BackgroundColor3 = Color3.fromRGB(60, 60, 60)

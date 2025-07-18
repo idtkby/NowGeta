@@ -1,0 +1,226 @@
+-- Script📃Executor5.4: WalkTo & AutoNearest (Lock + Path Stable)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local PathService = game:GetService("PathfindingService")
+
+-- Khởi tạo
+local isControlling = false
+local walkto, autoNearest, checkTeam = false, false, false
+local selectedPlayer, walkLoop, autoLoop, currentTarget = nil, nil, nil, nil
+local lastTargetPos = nil
+
+-- Theo dõi di chuyển tay/phím
+local function bindControlDetection()
+	local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+	if not hum then return end
+	hum:GetPropertyChangedSignal("MoveDirection"):Connect(function()
+		isControlling = hum.MoveDirection.Magnitude > 0
+	end)
+end
+LocalPlayer.CharacterAdded:Connect(function() task.wait(1) bindControlDetection() end)
+if LocalPlayer.Character then bindControlDetection() end
+
+-- Hàm tiện ích
+local function getRoot(char)
+	return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function shouldRepath(newPos)
+	if not lastTargetPos then
+		lastTargetPos = newPos
+		return true
+	end
+	local moved = (lastTargetPos - newPos).Magnitude > 2
+	if moved then
+		lastTargetPos = newPos
+	end
+	return moved
+end
+
+-- Đi theo path
+local function pathTo(humanoid, fromPos, toPos, stopCheck)
+	local hrp = humanoid.Parent:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local path = PathService:CreatePath({
+		AgentRadius = 2,
+		AgentHeight = 5,
+		AgentCanJump = true,
+		AgentCanClimb = true,
+	})
+	path:ComputeAsync(fromPos, toPos)
+
+	if path.Status ~= Enum.PathStatus.Success then
+		humanoid:MoveTo(toPos)
+		return
+	end
+
+	for _, wp in ipairs(path:GetWaypoints()) do
+		if stopCheck and stopCheck() then return end
+		humanoid:MoveTo(wp.Position)
+		local done = false
+		local conn = humanoid.MoveToFinished:Connect(function() done = true end)
+		repeat task.wait(0.1)
+			if stopCheck and stopCheck() then conn:Disconnect() return end
+		until done or (wp.Position - hrp.Position).Magnitude <= 5
+		conn:Disconnect()
+	end
+end
+
+-- GUI
+pcall(function() CoreGui:FindFirstChild("WalkToGUI"):Destroy() end)
+local gui = Instance.new("ScreenGui", CoreGui) gui.Name = "WalkToGUI" gui.ResetOnSpawn = false
+
+local toggleBtn = Instance.new("TextButton", gui)
+toggleBtn.Size = UDim2.new(0, 44, 0, 44)
+toggleBtn.Position = UDim2.new(0, 10, 0, 10)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+toggleBtn.BackgroundTransparency = 0.3
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+toggleBtn.Text = "WalkTo"
+toggleBtn.Draggable = true
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 200, 0, 190)
+frame.Position = UDim2.new(0, 10, 0.5, -95)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Visible = false
+frame.Draggable = true
+
+toggleBtn.MouseButton1Click:Connect(function() frame.Visible = not frame.Visible end)
+
+-- Dropdown chọn player
+local dropdown = Instance.new("TextButton", frame)
+dropdown.Size = UDim2.new(1, 0, 0, 30)
+dropdown.Position = UDim2.new(0, 0, 0, -30)
+dropdown.Text = "Select Player"
+dropdown.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+dropdown.TextColor3 = Color3.new(1, 1, 1)
+
+local dropdownList = Instance.new("ScrollingFrame", frame)
+dropdownList.Size = UDim2.new(1, 0, 0, 70)
+dropdownList.Position = UDim2.new(0, 0, 0, 0)
+dropdownList.Visible = false
+dropdownList.ScrollBarThickness = 4
+dropdownList.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+
+dropdown.MouseButton1Click:Connect(function()
+	dropdownList.Visible = not dropdownList.Visible
+end)
+
+local function refreshDropdown()
+	dropdownList:ClearAllChildren()
+	local y = 0
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer then
+			local btn = Instance.new("TextButton", dropdownList)
+			btn.Size = UDim2.new(1, 0, 0, 25)
+			btn.Position = UDim2.new(0, 0, 0, y)
+			btn.Text = plr.Name
+			btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+			btn.TextColor3 = Color3.new(1, 1, 1)
+			btn.MouseButton1Click:Connect(function()
+				selectedPlayer = plr
+				dropdown.Text = "Selected: " .. plr.Name
+				dropdownList.Visible = false
+			end)
+			y += 25
+		end
+	end
+	dropdownList.CanvasSize = UDim2.new(0, 0, 0, y)
+end
+
+task.spawn(function()
+	while true do
+		if dropdownList.Visible then refreshDropdown() end
+		task.wait(2)
+	end
+end)
+
+-- WalkTo
+local walkBtn = Instance.new("TextButton", frame)
+walkBtn.Size = UDim2.new(1, 0, 0, 30)
+walkBtn.Position = UDim2.new(0, 0, 0, 110)
+walkBtn.Text = "WalkTo: OFF"
+walkBtn.BackgroundColor3 = Color3.fromRGB(70, 100, 70)
+walkBtn.TextColor3 = Color3.new(1, 1, 1)
+
+walkBtn.MouseButton1Click:Connect(function()
+	walkto = not walkto
+	walkBtn.Text = "WalkTo: " .. (walkto and "ON" or "OFF")
+	if walkLoop then task.cancel(walkLoop) end
+	if not walkto then return end
+
+	walkLoop = task.spawn(function()
+		while walkto do
+			task.wait(0.5)
+			local char = LocalPlayer.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			local myRoot = getRoot(char)
+			local targetRoot = selectedPlayer and getRoot(selectedPlayer.Character)
+			if hum and myRoot and targetRoot and selectedPlayer then
+				local to = targetRoot.Position
+				if (myRoot.Position - to).Magnitude > 8 and shouldRepath(to) then
+					pathTo(hum, myRoot.Position, to, function() return not walkto or isControlling end)
+				end
+			end
+		end
+	end)
+end)
+
+-- AutoNearest
+local autoBtn = Instance.new("TextButton", frame)
+autoBtn.Size = UDim2.new(1, 0, 0, 30)
+autoBtn.Position = UDim2.new(0, 0, 0, 150)
+autoBtn.Text = "AutoNearest: OFF"
+autoBtn.BackgroundColor3 = Color3.fromRGB(100, 70, 70)
+autoBtn.TextColor3 = Color3.new(1, 1, 1)
+
+autoBtn.MouseButton1Click:Connect(function()
+	autoNearest = not autoNearest
+	autoBtn.Text = "AutoNearest: " .. (autoNearest and "ON" or "OFF")
+	if autoLoop then task.cancel(autoLoop) end
+	currentTarget, lastTargetPos = nil, nil
+	if not autoNearest then return end
+
+	autoLoop = task.spawn(function()
+		while autoNearest do
+			task.wait(0.5)
+			local char = LocalPlayer.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			local myRoot = getRoot(char)
+			if not hum or not myRoot then break end
+
+			-- Chọn mục tiêu nếu chưa có hoặc chết
+			if not currentTarget or not currentTarget.Character
+				or not currentTarget.Character:FindFirstChildOfClass("Humanoid")
+				or currentTarget.Character:FindFirstChildOfClass("Humanoid").Health <= 0 then
+
+				local nearest, minDist = nil, math.huge
+				for _, plr in ipairs(Players:GetPlayers()) do
+					local root = getRoot(plr.Character)
+					local hp = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
+					if plr ~= LocalPlayer and root and hp and hp.Health > 0 then
+						if checkTeam and plr.Team == LocalPlayer.Team then continue end
+						local dist = (myRoot.Position - root.Position).Magnitude
+						if dist < minDist then
+							minDist = dist
+							nearest = plr
+						end
+					end
+				end
+				currentTarget = nearest
+				lastTargetPos = nil
+			end
+
+			if currentTarget and getRoot(currentTarget.Character) then
+				local to = getRoot(currentTarget.Character).Position
+				if (myRoot.Position - to).Magnitude > 8 and shouldRepath(to) then
+					pathTo(hum, myRoot.Position, to, function() return not autoNearest or isControlling end)
+				end
+			end
+		end
+	end)
+end)

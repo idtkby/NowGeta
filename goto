@@ -5,7 +5,7 @@ local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 
 pcall(function()
-	if CoreGui:FindFirstChild("WalkToGUI") then
+	if CoreGui:FindFirstChild("gotoGUI") then
 		CoreGui.WalkToGUI:Destroy()
 	end
 end)
@@ -45,7 +45,7 @@ end
 
 -- gui
 local gui = Instance.new("ScreenGui", CoreGui)
-gui.Name = "WalkToGUI"
+gui.Name = "gotoGUI"
 gui.ResetOnSpawn = false
 
 local toggleBtn = Instance.new("TextButton", gui)

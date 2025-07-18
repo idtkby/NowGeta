@@ -1,0 +1,204 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+
+pcall(function()
+    if CoreGui:FindFirstChild("WalkToGUI") then
+        CoreGui.WalkToGUI:Destroy()
+    end
+end)
+
+local walkto = false
+local autoNearest = false
+local checkTeam = false
+local selectedPlayer
+local walkLoop, autoLoop
+
+-- GUI
+local gui = Instance.new("ScreenGui", CoreGui)
+gui.Name = "WalkToGUI"
+gui.ResetOnSpawn = false
+
+local toggleBtn = Instance.new("TextButton", gui)
+toggleBtn.Size = UDim2.new(0, 44, 0, 44)
+toggleBtn.Position = UDim2.new(0, 10, 0, 10)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+toggleBtn.BackgroundTransparency = 0.3
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.Text = "Walkto"
+toggleBtn.Active = true
+toggleBtn.Draggable = true
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 200, 0, 190)
+frame.Position = UDim2.new(0, 10, 0.5, -95)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Active = true
+frame.Draggable = true
+frame.Visible = false
+
+toggleBtn.MouseButton1Click:Connect(function()
+    frame.Visible = not frame.Visible
+end)
+
+-- Dropdown chọn player
+local dropdown = Instance.new("TextButton", frame)
+dropdown.Size = UDim2.new(1, 0, 0, 30)
+dropdown.Position = UDim2.new(0, 0, 0, -30)
+dropdown.Text = "Select Player"
+dropdown.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+dropdown.TextColor3 = Color3.new(1, 1, 1)
+
+local dropdownList = Instance.new("ScrollingFrame", frame)
+dropdownList.Size = UDim2.new(1, 0, 0, 70)
+dropdownList.Position = UDim2.new(0, 0, 0, 0)
+dropdownList.CanvasSize = UDim2.new(0, 0, 0, 0)
+dropdownList.ScrollBarThickness = 4
+dropdownList.Visible = false
+dropdownList.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+
+dropdown.MouseButton1Click:Connect(function()
+    dropdownList.Visible = not dropdownList.Visible
+end)
+
+local function refreshDropdown()
+    dropdownList:ClearAllChildren()
+    local y = 0
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local btn = Instance.new("TextButton", dropdownList)
+            btn.Size = UDim2.new(1, 0, 0, 25)
+            btn.Position = UDim2.new(0, 0, 0, y)
+            btn.Text = plr.Name
+            btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            btn.TextColor3 = Color3.new(1, 1, 1)
+            btn.MouseButton1Click:Connect(function()
+                selectedPlayer = plr
+                dropdown.Text = "Selected: " .. plr.Name
+                dropdownList.Visible = false
+            end)
+            y = y + 25
+        end
+    end
+    dropdownList.CanvasSize = UDim2.new(0, 0, 0, y)
+end
+
+task.spawn(function()
+    while true do
+        if dropdownList.Visible then
+            refreshDropdown()
+        end
+        task.wait(2)
+    end
+end)
+
+-- WalkTo button
+local walkBtn = Instance.new("TextButton", frame)
+walkBtn.Size = UDim2.new(1, 0, 0, 30)
+walkBtn.Position = UDim2.new(0, 0, 0, 110)
+walkBtn.Text = "WalkTo: OFF"
+walkBtn.BackgroundColor3 = Color3.fromRGB(70, 100, 70)
+walkBtn.TextColor3 = Color3.new(1, 1, 1)
+
+walkBtn.MouseButton1Click:Connect(function()
+    walkto = not walkto
+    walkBtn.Text = "WalkTo: " .. (walkto and "ON" or "OFF")
+
+    if walkLoop then walkLoop:Disconnect() end
+
+    if not walkto then
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:MoveTo(LocalPlayer.Character.HumanoidRootPart.Position) end
+        return
+    end
+
+    if selectedPlayer and selectedPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum.SeatPart then hum.Sit = false task.wait(0.1) end
+
+        walkLoop = RunService.Heartbeat:Connect(function()
+            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                hum:MoveTo(selectedPlayer.Character.HumanoidRootPart.Position)
+            end
+        end)
+    end
+end)
+
+-- AutoNearest button
+local autoBtn = Instance.new("TextButton", frame)
+autoBtn.Size = UDim2.new(1, 0, 0, 30)
+autoBtn.Position = UDim2.new(0, 0, 0, 150)
+autoBtn.Text = "AutoNearest: OFF"
+autoBtn.BackgroundColor3 = Color3.fromRGB(100, 70, 70)
+autoBtn.TextColor3 = Color3.new(1, 1, 1)
+
+-- Check Team toggle
+local teamBtn = Instance.new("TextButton", frame)
+teamBtn.Size = UDim2.new(1, 0, 0, 30)
+teamBtn.Position = UDim2.new(0, 0, 0, 70)
+teamBtn.Text = "Check Team: OFF"
+teamBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 100)
+teamBtn.TextColor3 = Color3.new(1, 1, 1)
+
+teamBtn.MouseButton1Click:Connect(function()
+    checkTeam = not checkTeam
+    teamBtn.Text = "Check Team: " .. (checkTeam and "ON" or "OFF")
+end)
+
+local currentTarget = nil
+
+autoBtn.MouseButton1Click:Connect(function()
+    autoNearest = not autoNearest
+    autoBtn.Text = "AutoNearest: " .. (autoNearest and "ON" or "OFF")
+
+    if autoLoop then autoLoop:Disconnect() end
+    currentTarget = nil
+
+    if not autoNearest then
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:MoveTo(LocalPlayer.Character.HumanoidRootPart.Position) end
+        return
+    end
+
+    autoLoop = RunService.Heartbeat:Connect(function()
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then return end
+
+        -- need new target?
+        if not currentTarget
+        or not currentTarget.Character
+        or not currentTarget.Character:FindFirstChild("Humanoid")
+        or currentTarget.Character.Humanoid.Health <= 0 then
+
+            local nearest, minScore = nil, math.huge
+            for _, plr in ipairs(Players:GetPlayers()) do
+    if plr ~= LocalPlayer
+    and plr.Character
+    and plr.Character:FindFirstChild("HumanoidRootPart")
+    and plr.Character:FindFirstChild("Humanoid")
+    and plr.Character.Humanoid.Health > 0 then
+
+        if checkTeam and plr.Team == LocalPlayer.Team then
+            continue
+        end
+
+        local pos = plr.Character.HumanoidRootPart.Position
+        local score = (hrp.Position - pos).Magnitude
+
+        if score < minScore then
+            minScore = score
+            nearest = plr
+        end
+    end
+end
+            currentTarget = nearest
+        end
+
+        if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("HumanoidRootPart") then
+            hum:MoveTo(currentTarget.Character.HumanoidRootPart.Position)
+        end
+    end)
+end)

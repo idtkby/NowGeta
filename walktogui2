@@ -70,8 +70,8 @@ local function pathTo(humanoid, fromPos, toPos, stopCheck)
 end
 
 -- GUI
-pcall(function() CoreGui:FindFirstChild("WalkToGUI"):Destroy() end)
-local gui = Instance.new("ScreenGui", CoreGui) gui.Name = "WalkToGUI" gui.ResetOnSpawn = false
+pcall(function() CoreGui:FindFirstChild("WalkTo2GUI"):Destroy() end)
+local gui = Instance.new("ScreenGui", CoreGui) gui.Name = "WalkTo2GUI" gui.ResetOnSpawn = false
 
 local toggleBtn = Instance.new("TextButton", gui)
 toggleBtn.Size = UDim2.new(0, 44, 0, 44)
@@ -80,6 +80,7 @@ toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 toggleBtn.BackgroundTransparency = 0.3
 toggleBtn.TextColor3 = Color3.new(1,1,1)
 toggleBtn.Text = "WalkTo"
+toggleBtn.Active = true
 toggleBtn.Draggable = true
 
 local frame = Instance.new("Frame", gui)
@@ -87,6 +88,7 @@ frame.Size = UDim2.new(0, 200, 0, 190)
 frame.Position = UDim2.new(0, 10, 0.5, -95)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.Visible = false
+frame.Active = true
 frame.Draggable = true
 
 toggleBtn.MouseButton1Click:Connect(function() frame.Visible = not frame.Visible end)

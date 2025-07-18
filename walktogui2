@@ -41,7 +41,7 @@ end
 
 -- Đi theo path
 local function pathTo(humanoid, fromPos, toPos, stopCheck)
-	local hrp = humanoid.Parent:FindFirstChild("HumanoidRootPart")
+	local hrp = humanoid.Parent and humanoid.Parent:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 
 	local path = PathService:CreatePath({
@@ -57,14 +57,29 @@ local function pathTo(humanoid, fromPos, toPos, stopCheck)
 		return
 	end
 
-	for _, wp in ipairs(path:GetWaypoints()) do
+	local waypoints = path:GetWaypoints()
+	local lastLiveTargetPos = toPos
+
+	for _, wp in ipairs(waypoints) do
 		if stopCheck and stopCheck() then return end
 		humanoid:MoveTo(wp.Position)
 		local done = false
 		local conn = humanoid.MoveToFinished:Connect(function() done = true end)
-		repeat task.wait(0.1)
+
+		repeat
+			task.wait(0.1)
 			if stopCheck and stopCheck() then conn:Disconnect() return end
+
+			if selectedPlayer and getRoot(selectedPlayer.Character) then
+				local livePos = getRoot(selectedPlayer.Character).Position
+				if (livePos - lastLiveTargetPos).Magnitude > 2 then
+					-- Nếu target đã đi xa hơn 2 stud khỏi toPos ban đầu → hủy path
+					conn:Disconnect()
+					return
+				end
+			end
 		until done or (wp.Position - hrp.Position).Magnitude <= 5
+
 		conn:Disconnect()
 	end
 end

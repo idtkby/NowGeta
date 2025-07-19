@@ -1,0 +1,116 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local AutoRunning = false
+local KeyList = {}
+local TriggeredList = {}
+local Gui = Instance.new("ScreenGui", game.CoreGui)
+Gui.Name = "AutoPromptGUI"
+Gui.ResetOnSpawn = false
+
+local Btn = Instance.new("TextButton", Gui)
+Btn.Size = UDim2.new(0, 140, 0, 45)
+Btn.Position = UDim2.new(0, 10, 0, 60)
+Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Btn.Text = "Auto Prompts: OFF"
+Btn.Font = Enum.Font.GothamBold
+Btn.TextSize = 14
+Btn.Active = true
+Btn.Draggable = true
+
+local function trigger(obj, HRP)
+	if TriggeredList[obj] and tick() - TriggeredList[obj] < 2 then return end
+
+	local ok = false
+	pcall(function()
+		if obj:IsA("ProximityPrompt") then
+			fireproximityprompt(obj, 1, true)
+			ok = true
+		elseif obj:IsA("ClickDetector") then
+			fireclickdetector(obj)
+			ok = true
+		elseif obj:IsA("TouchTransmitter") or obj.Name == "TouchInterest" then
+			local part = obj.Parent
+			if part and part:IsA("BasePart") then
+				firetouchinterest(HRP, part, 0)
+				task.wait()
+				firetouchinterest(HRP, part, 1)
+				ok = true
+			end
+		end
+	end)
+
+	if ok then
+		TriggeredList[obj] = tick()
+	end
+end
+
+local function getClosestPart(model, pos)
+	local closest, dist = nil, math.huge
+	for _, p in ipairs(model:GetDescendants()) do
+		if p:IsA("BasePart") then
+			local d = (p.Position - pos).Magnitude
+			if d < dist then
+				dist = d
+				closest = p
+			end
+		end
+	end
+	return closest, dist
+end
+
+local function scan()
+	KeyList = {}
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if (obj:IsA("ProximityPrompt") or obj:IsA("ClickDetector") or obj.Name == "TouchInterest") and not obj:IsDescendantOf(LocalPlayer.Character) then
+			local model = obj:FindFirstAncestorWhichIsA("Model") or obj.Parent
+			table.insert(KeyList, {model = model, obj = obj})
+		end
+	end
+end
+
+workspace.DescendantAdded:Connect(function(obj)
+	if AutoRunning and (obj:IsA("ProximityPrompt") or obj:IsA("ClickDetector") or obj.Name == "TouchInterest") and not obj:IsDescendantOf(LocalPlayer.Character) then
+		local model = obj:FindFirstAncestorWhichIsA("Model") or obj.Parent
+		table.insert(KeyList, {model = model, obj = obj})
+	end
+end)
+
+Btn.MouseButton1Click:Connect(function()
+	AutoRunning = not AutoRunning
+	Btn.Text = "Auto Prompts: " .. (AutoRunning and "ON" or "OFF")
+	Btn.TextColor3 = AutoRunning and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+
+	if AutoRunning then
+		scan()
+	end
+end)
+
+-- Thay vì Heartbeat → dùng loop cách 0.2s
+task.spawn(function()
+	while true do
+		task.wait(0.2)
+		if not AutoRunning then continue end
+
+		local Character = LocalPlayer.Character
+		local HRP = Character and Character:FindFirstChild("HumanoidRootPart")
+		if not HRP then continue end
+
+		for i = #KeyList, 1, -1 do
+			local data = KeyList[i]
+			local model, obj = data.model, data.obj
+
+			if not model or not model:IsDescendantOf(workspace) or not obj or not obj:IsDescendantOf(model) then
+				table.remove(KeyList, i)
+				continue
+			end
+
+			local _, dist = getClosestPart(model, HRP.Position)
+			if dist and dist <= 15 then
+				trigger(obj, HRP)
+			end
+		end
+	end
+end)

@@ -1,0 +1,63 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local CoreGui = game:GetService("CoreGui")
+
+-- XĂ³a GUI cÅ© náº¿u cĂ³
+if CoreGui:FindFirstChild("ToolNameGUI") then
+	CoreGui.ToolNameGUI:Destroy()
+end
+
+-- Táº¡o GUI
+local screenGui = Instance.new("ScreenGui", CoreGui)
+screenGui.Name = "ToolNameGUI"
+screenGui.ResetOnSpawn = false
+
+local dragFrame = Instance.new("Frame", screenGui)
+dragFrame.Size = UDim2.new(0, 200, 0, 40)
+dragFrame.Position = UDim2.new(0.5, -100, 0.85, 0)
+dragFrame.BackgroundTransparency = 0.3
+dragFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+dragFrame.Active = true
+dragFrame.Draggable = true -- âœ… KĂ©o Ä‘Æ°á»£c
+
+local textLabel = Instance.new("TextLabel", dragFrame)
+textLabel.Size = UDim2.new(1, 0, 1, 0)
+textLabel.BackgroundTransparency = 1
+textLabel.TextColor3 = Color3.new(1, 1, 1)
+textLabel.Font = Enum.Font.SourceSansBold
+textLabel.TextSize = 24
+textLabel.Text = "Tool: None"
+
+-- Cáº­p nháº­t tĂªn tool Ä‘ang cáº§m
+local function updateToolName()
+	local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+	if tool then
+		textLabel.Text = "Tool: "..tool.Name
+	else
+		textLabel.Text = "Tool: None"
+	end
+end
+
+-- Theo dĂµi khi trang bá»‹ hoáº·c bá» tool
+player.CharacterAdded:Connect(function(c)
+	char = c
+	c.ChildAdded:Connect(function(obj)
+		if obj:IsA("Tool") then updateToolName() end
+	end)
+	c.ChildRemoved:Connect(function(obj)
+		if obj:IsA("Tool") then updateToolName() end
+	end)
+	updateToolName()
+end)
+
+char.ChildAdded:Connect(function(obj)
+	if obj:IsA("Tool") then updateToolName() end
+end)
+
+char.ChildRemoved:Connect(function(obj)
+	if obj:IsA("Tool") then updateToolName() end
+end)
+
+-- Láº§n Ä‘áº§u cháº¡y
+updateToolName()

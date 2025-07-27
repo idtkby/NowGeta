@@ -3,12 +3,12 @@ local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local CoreGui = game:GetService("CoreGui")
 
--- XĂ³a GUI cÅ© náº¿u cĂ³
+-- Xóa GUI cũ nếu có
 if CoreGui:FindFirstChild("ToolNameGUI") then
 	CoreGui.ToolNameGUI:Destroy()
 end
 
--- Táº¡o GUI
+-- Tạo GUI
 local screenGui = Instance.new("ScreenGui", CoreGui)
 screenGui.Name = "ToolNameGUI"
 screenGui.ResetOnSpawn = false
@@ -19,7 +19,7 @@ dragFrame.Position = UDim2.new(0.5, -100, 0.85, 0)
 dragFrame.BackgroundTransparency = 0.3
 dragFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 dragFrame.Active = true
-dragFrame.Draggable = true -- âœ… KĂ©o Ä‘Æ°á»£c
+dragFrame.Draggable = true
 
 local textLabel = Instance.new("TextLabel", dragFrame)
 textLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -29,17 +29,46 @@ textLabel.Font = Enum.Font.SourceSansBold
 textLabel.TextSize = 24
 textLabel.Text = "Tool: None"
 
--- Cáº­p nháº­t tĂªn tool Ä‘ang cáº§m
+-- Tạo nút Copy
+local copyButton = Instance.new("TextButton", screenGui)
+copyButton.Size = UDim2.new(0, 60, 0, 25)
+copyButton.Position = UDim2.new(0.5, -100, 0.85, 45)
+copyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+copyButton.TextColor3 = Color3.new(1, 1, 1)
+copyButton.Text = "Copy"
+copyButton.TextScaled = true
+
+copyButton.MouseButton1Click:Connect(function()
+	local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+	if tool then
+		setclipboard(tool.Name)
+	end
+end)
+
+-- Tạo nút Xóa GUI
+local removeButton = Instance.new("TextButton", screenGui)
+removeButton.Size = UDim2.new(0, 60, 0, 25)
+removeButton.Position = UDim2.new(0.5, -30, 0.85, 45)
+removeButton.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
+removeButton.TextColor3 = Color3.new(1, 1, 1)
+removeButton.Text = "Xóa"
+removeButton.TextScaled = true
+
+removeButton.MouseButton1Click:Connect(function()
+	screenGui:Destroy()
+end)
+
+-- Cập nhật tên tool đang cầm
 local function updateToolName()
 	local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
 	if tool then
-		textLabel.Text = "Tool: "..tool.Name
+		textLabel.Text = "Tool: " .. tool.Name
 	else
 		textLabel.Text = "Tool: None"
 	end
 end
 
--- Theo dĂµi khi trang bá»‹ hoáº·c bá» tool
+-- Theo dõi khi trang bị hoặc bỏ tool
 player.CharacterAdded:Connect(function(c)
 	char = c
 	c.ChildAdded:Connect(function(obj)
@@ -59,5 +88,5 @@ char.ChildRemoved:Connect(function(obj)
 	if obj:IsA("Tool") then updateToolName() end
 end)
 
--- Láº§n Ä‘áº§u cháº¡y
+-- Lần đầu chạy
 updateToolName()

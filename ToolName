@@ -1,92 +1,119 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local CoreGui = game:GetService("CoreGui")
-
 -- Xóa GUI cũ nếu có
+local CoreGui = game:GetService("CoreGui")
 if CoreGui:FindFirstChild("ToolNameGUI") then
 	CoreGui.ToolNameGUI:Destroy()
 end
 
 -- Tạo GUI
-local screenGui = Instance.new("ScreenGui", CoreGui)
-screenGui.Name = "ToolNameGUI"
-screenGui.ResetOnSpawn = false
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ToolNameGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = CoreGui
 
-local dragFrame = Instance.new("Frame", screenGui)
-dragFrame.Size = UDim2.new(0, 200, 0, 40)
-dragFrame.Position = UDim2.new(0.5, -100, 0.85, 0)
-dragFrame.BackgroundTransparency = 0.3
-dragFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-dragFrame.Active = true
-dragFrame.Draggable = true
+-- Tạo Frame chính
+local Frame = Instance.new("Frame")
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.Position = UDim2.new(0.5, -150, 0.1, 0)
+Frame.Size = UDim2.new(0, 200, 0, 50)
+Frame.Active = true
+Frame.Draggable = true -- ✅ Sử dụng drag đơn giản
 
-local textLabel = Instance.new("TextLabel", dragFrame)
-textLabel.Size = UDim2.new(1, 0, 1, 0)
-textLabel.BackgroundTransparency = 1
-textLabel.TextColor3 = Color3.new(1, 1, 1)
-textLabel.Font = Enum.Font.SourceSansBold
-textLabel.TextSize = 24
-textLabel.Text = "Tool: None"
+-- Nhãn Tool
+local ToolLabel = Instance.new("TextLabel")
+ToolLabel.Parent = Frame
+ToolLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ToolLabel.Size = UDim2.new(1, 0, 1, 0)
+ToolLabel.Font = Enum.Font.SourceSans
+ToolLabel.Text = "Tool: None"
+ToolLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToolLabel.TextSize = 15
+ToolLabel.TextWrapped = true
+ToolLabel.TextStrokeTransparency = 0.5
 
--- Tạo nút Copy
-local copyButton = Instance.new("TextButton", screenGui)
-copyButton.Size = UDim2.new(0, 60, 0, 25)
-copyButton.Position = UDim2.new(0.5, -100, 0.85, 45)
-copyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-copyButton.TextColor3 = Color3.new(1, 1, 1)
-copyButton.Text = "Copy"
-copyButton.TextScaled = true
+-- Nút đóng X
+local CloseButton = Instance.new("TextButton")
+CloseButton.Parent = Frame
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+CloseButton.Size = UDim2.new(0, 17, 0, 17)
+CloseButton.Position = UDim2.new(0.965, -10, 0, -19.5)
+CloseButton.Font = Enum.Font.SourceSansBold
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 15
+CloseButton.MouseButton1Click:Connect(function()
+	ScreenGui:Destroy()
+end)
 
-copyButton.MouseButton1Click:Connect(function()
-	local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
-	if tool then
-		setclipboard(tool.Name)
+-- Nút copy
+local CopyButton = Instance.new("TextButton")
+CopyButton.Parent = Frame
+CopyButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+CopyButton.Size = UDim2.new(0.72, 36, 0, 16)
+CopyButton.Position = UDim2.new(0.15, -30, 1, -69)
+CopyButton.Font = Enum.Font.SourceSansBold
+CopyButton.Text = "Copy Tool"
+CopyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+CopyButton.TextSize = 12
+
+-- Lưu tool thật
+local currentToolName = "None"
+local isCooldown = false
+CopyButton.MouseButton1Click:Connect(function()
+	if isCooldown then return end
+	isCooldown = true
+
+	if setclipboard and currentToolName ~= "None" then
+		setclipboard(currentToolName)
+		CopyButton.Text = "Copied!"
+		task.delay(0.1, function()
+			CopyButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			CopyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+		end)
+		task.delay(1, function()
+			CopyButton.Text = "Copy Tool"
+			isCooldown = false
+		end)
+	else
+		isCooldown = false
 	end
 end)
 
--- Tạo nút Xóa GUI
-local removeButton = Instance.new("TextButton", screenGui)
-removeButton.Size = UDim2.new(0, 60, 0, 25)
-removeButton.Position = UDim2.new(0.5, -30, 0.85, 45)
-removeButton.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
-removeButton.TextColor3 = Color3.new(1, 1, 1)
-removeButton.Text = "Xóa"
-removeButton.TextScaled = true
+-- Theo dõi tool đang cầm
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
 
-removeButton.MouseButton1Click:Connect(function()
-	screenGui:Destroy()
-end)
-
--- Cập nhật tên tool đang cầm
-local function updateToolName()
-	local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+local function updateTool()
+	local tool = char:FindFirstChildOfClass("Tool")
 	if tool then
-		textLabel.Text = "Tool: " .. tool.Name
+		currentToolName = tool.Name
+		local displayName = #tool.Name > 25 and tool.Name:sub(1, 23) .. "..." or tool.Name
+		ToolLabel.Text = "Tool: " .. displayName
 	else
-		textLabel.Text = "Tool: None"
+		currentToolName = "None"
+		ToolLabel.Text = "Tool: None"
 	end
 end
 
--- Theo dõi khi trang bị hoặc bỏ tool
+-- Theo dõi thêm khi thay nhân vật
 player.CharacterAdded:Connect(function(c)
 	char = c
 	c.ChildAdded:Connect(function(obj)
-		if obj:IsA("Tool") then updateToolName() end
+		if obj:IsA("Tool") then updateTool() end
 	end)
 	c.ChildRemoved:Connect(function(obj)
-		if obj:IsA("Tool") then updateToolName() end
+		if obj:IsA("Tool") then updateTool() end
 	end)
-	updateToolName()
+	updateTool()
 end)
 
 char.ChildAdded:Connect(function(obj)
-	if obj:IsA("Tool") then updateToolName() end
+	if obj:IsA("Tool") then updateTool() end
 end)
-
 char.ChildRemoved:Connect(function(obj)
-	if obj:IsA("Tool") then updateToolName() end
+	if obj:IsA("Tool") then updateTool() end
 end)
 
--- Lần đầu chạy
-updateToolName()
+-- Khởi đầu
+updateTool()

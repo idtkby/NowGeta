@@ -17,7 +17,7 @@ Btn.Size = UDim2.new(0, 140, 0, 45)
 Btn.Position = UDim2.new(0, 10, 0, 60)
 Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-Btn.Text = "Auto PromptsV2: OFF"
+Btn.Text = "Auto InteractV2: OFF"
 Btn.Font = Enum.Font.GothamBold
 Btn.TextSize = 14
 Btn.Active = true
@@ -83,7 +83,7 @@ end)
 
 Btn.MouseButton1Click:Connect(function()
 	AutoRunning = not AutoRunning
-	Btn.Text = "Auto Prompts: " .. (AutoRunning and "ON" or "OFF")
+	Btn.Text = "Auto Interact: " .. (AutoRunning and "ON" or "OFF")
 	Btn.TextColor3 = AutoRunning and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
 
 	if AutoRunning then

@@ -1,0 +1,77 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local backpack = player:WaitForChild("Backpack")
+
+-- Xóa Tool cũ nếu có
+if backpack:FindFirstChild("Delete") then
+	backpack.Delete:Destroy()
+end
+
+-- Tạo Tool
+local tool = Instance.new("Tool")
+tool.Name = "Delete"
+tool.RequiresHandle = false
+tool.CanBeDropped = false
+tool.Parent = backpack
+
+-- Biến theo dõi Part đã chọn
+local selectedPart = nil
+local outline = nil
+local lastClickTime = 0
+
+-- Âm thanh nền khi xóa (ID có thể thay đổi)
+local DELETE_SOUND_ID = "rbxassetid://5137964328" -- 🟢 Sound mới, thay bằng ID bạn muốn
+
+local function playDeleteSound()
+	local sound = Instance.new("Sound")
+	sound.SoundId = DELETE_SOUND_ID
+	sound.Volume = 1
+	sound.PlayOnRemove = true
+	sound.Parent = workspace
+	sound:Destroy() -- Tự phát và xoá sau
+end
+
+-- Tạo Highlight
+local function createOutline(part)
+	if outline then outline:Destroy() end
+	outline = Instance.new("Highlight")
+	outline.FillTransparency = 1
+	outline.OutlineColor = Color3.fromRGB(255, 50, 50)
+	outline.OutlineTransparency = 0
+	outline.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	outline.Parent = part
+end
+
+-- Xoá Highlight
+local function clearOutline()
+	if outline then outline:Destroy() end
+	outline = nil
+	selectedPart = nil
+end
+
+-- Khi equip tool
+tool.Equipped:Connect(function(mouse)
+	mouse.Button1Down:Connect(function()
+		local target = mouse.Target
+		if target and target:IsA("BasePart") then
+			local now = tick()
+
+			if target == selectedPart and (now - lastClickTime) <= 1 then
+				-- Ấn lần 2: xoá
+				playDeleteSound()
+				target:Destroy()
+				clearOutline()
+			else
+				-- Ấn lần đầu hoặc part khác
+				selectedPart = target
+				createOutline(target)
+				lastClickTime = now
+			end
+		end
+	end)
+end)
+
+tool.Unequipped:Connect(function()
+	clearOutline()
+end)

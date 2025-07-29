@@ -52,7 +52,7 @@ CopyButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 CopyButton.Size = UDim2.new(0.72, 36, 0, 16)
 CopyButton.Position = UDim2.new(0.15, -30, 1, -69)
 CopyButton.Font = Enum.Font.SourceSansBold
-CopyButton.Text = "Copy Tool"
+CopyButton.Text = "Copy Name"
 CopyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
 CopyButton.TextSize = 12
 

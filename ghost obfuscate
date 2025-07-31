@@ -26,4 +26,8 @@ steal a brainrot timerlock esp
 loadstring(game:HttpGet("https://protected-roblox-scripts.onrender.com/945fc3743f23e2903d0397957b2a464d"))()
 7382761783854981
 HEALTHBAR SHOW
+---
+loadstring(game:HttpGet("https://protected-roblox-scripts.onrender.com/8ebff497054a115ac6f5be3ac49ae655"))()
+09188291716910
+auto Interact Toggle ~85%
 --]]

@@ -30,4 +30,8 @@ HEALTHBAR SHOW
 loadstring(game:HttpGet("https://protected-roblox-scripts.onrender.com/8ebff497054a115ac6f5be3ac49ae655"))()
 09188291716910
 auto Interact Toggle ~85%
+
+loadstring(game:HttpGet("https://protected-roblox-scripts.onrender.com/568c5348668f985838082195de655780"))()
+1369103781471979
+95%
 --]]

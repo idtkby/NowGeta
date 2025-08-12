@@ -53,6 +53,15 @@ elseif game.PlaceId == 104592421039274 then -- AOONI Nightmare
 wait(0.3)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/AOONI%20Nightmare%20UI"))() 
 
+elseif game.PlaceId == 18687417158 then -- [NOLI🎭] Forsaken}
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Waiting...",
+    Text = "Loading Forsaken...",
+    Duration = 5
+})
+wait(0.3)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/main/forsaken%20"))()
+
 
 else
     loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/KhangHub"))() -- Game Hub (Ko dính id game nào)

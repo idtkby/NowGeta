@@ -60,7 +60,7 @@ elseif game.PlaceId == 18687417158 then -- [NOLI🎭] Forsaken}
     Duration = 5
 })
 wait(0.3)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/main/forsaken%20"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/main/forsaken.lua"))()
 
 
 else

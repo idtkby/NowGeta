@@ -1,4 +1,52 @@
-heads/main/SAG.lua"},
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local StarterGui = game:GetService("StarterGui")
+
+local function notify(text)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "DYHUB",
+            Text = text,
+            Duration = 4
+        })
+    end)
+    print("[Notify]", text)
+end
+
+
+-- ===================== Free Version ==========================
+
+local FreeVersionallowedGamesByCreatorId = {
+    [9482918] = {name = "The Mimic (DYHUB X RAELHUB)", url = "https://raw.githubusercontent.com/Laelmano24/Rael-Hub/refs/heads/main/main.txt"},
+    [6042520] = {name = "99 Nights in the Forest", url = "https://raw.githubusercontent.com/dyumra/99NIGHT/refs/heads/main/nigga.lua"},
+    [12832037] = {name = "Baddies", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/BBdie.lua"},
+    [35888785] = {name = "Prospecting", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Prospecting.lua"},
+    [35786254] = {name = "Mines", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Mine.lua"},
+    [35815576] = {name = "Schedule 🥔", url = "https://pastebin.com/raw/gCSmFnbb"},
+    [6022628] = {name = "ST : Blockade Battlefront", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/stbb.lua"},
+    [12398672] = {name = "Ink Game", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/inkgame.lua"},
+}
+
+local FreeVersionallowedGamesByPlaceId = {
+    ["6677985923"] = {name = "Millionaire Empire Tycoon", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/MET.lua"},
+    ["3571215756"] = {name = "House Tycoon", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/HT.lua"},
+    ["126803389599637"] = {name = "Anime Tower Piece", url = "https://raw.githubusercontent.com/dyumra/Dupe-Anime-Rails/refs/heads/main/ATP.lua"},
+    ["286090429"] = {name = "Arsenal", url = "https://pastebin.com/raw/NeCbQB58"},
+    ["103661214879860"] = {name = "ABILITIES TOWER", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/AssT.lua"},
+    ["89343390950953"] = {name = "My Singing Brainrot [DYHUB X TORA]", url = "https://raw.githubusercontent.com/gumanba/Scripts/main/MySingingBrainrot"},
+    ["89343390950953"] = {name = "My Singing Brainrot [Faster]", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/MySingingB.lua"},
+    ["80932898798323"] = {name = "Cross Piece", url = "https://raw.githubusercontent.com/meobeo8/type/main/Loader"},
+    ["914010731"] = {name = "Ro-Ghoul", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Roghoul.lua"},
+    ["13618878564"] = {name = "Bloxel Gun", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/BLOXEL.lua"},
+    ["221718525"] = {name = "Ninja Tycoon", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/NT.lua"},
+    ["74392180661358"] = {name = "Grow a Mine", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/GAM.lua"},
+    ["113809264674979"] = {name = "Steal a Sword", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/SAS.lua"},
+    ["14940775218"] = {name = "No-Scope Arcade (2021)", url = "https://pastebin.com/raw/0xcSxSW4"},
+    ["6407649031"] = {name = "No-Scope Arcade", url = "https://pastebin.com/raw/0xcSxSW4"},
+    ["8260276694"] = {name = "Ability Wars", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Ability-War.lua"},
+    ["3623096087"] = {name = "Muscle Legends", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Muscle%20Legends.lua"},
+    ["81968724698850"] = {name = "Loot Fish", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/LF.lua"},
+    ["134699215023675"] = {name = "Steal a Garden", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/SAG.lua"},
     ["86628581581863"] = {name = "Anime Rails", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/ARv2_fixed.lua"},
     ["71575927487690"] = {name = "Build A Brainrot", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Build%20A%20Brainrot.lua"},
     ["82593820387667"] = {name = "Arcade Store Simulator", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Ass.lua"},
@@ -76,7 +124,8 @@ local AllowGameforPremiumByPlaceId = {
     ["11276071411"] = {name = "Be NPC or DIE", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/BeNpcOrDie.lua"},
     ["126244816328678"] = {name = "DIG", url = "https://raw.githubusercontent.com/PlayzlxD0tmatter/DIG-SCRIPT-ZERO/refs/heads/main/dig.md"},
     ["5991163185"] = {name = "Spray Print", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/SP.lua"},
-}
+}-- Dữ liệu game (giữ nguyên danh sách bạn đã có ở trên)
+-- Giả sử bạn đã khai báo:
 -- FreeVersionallowedGamesByCreatorId
 -- FreeVersionallowedGamesByPlaceId
 -- allowedGamesforPremiumByCreatorId
@@ -84,17 +133,22 @@ local AllowGameforPremiumByPlaceId = {
 
 local placeId = tostring(game.PlaceId)
 local creatorId = tostring(game.CreatorId)
+
+-- Tự tìm data tương ứng
 local gameData = 
     AllowGameforPremiumByPlaceId[placeId] or
     allowedGamesforPremiumByCreatorId[tonumber(creatorId)] or
     FreeVersionallowedGamesByPlaceId[placeId] or
     FreeVersionallowedGamesByCreatorId[tonumber(creatorId)]
+
 if not gameData then
     notify("❌ This script is not supported in this game!")
     wait(4)
     player:Kick("⚠️ Script not supported here.\n📊 Please run the script in supported games.\n🔗 Join our (dsc.gg/dyhub)")
     return
 end
+
+-- Tự động tải và thực thi script
 local function loadScript()
     if gameData.url then
         local success, err = pcall(function()
@@ -109,4 +163,16 @@ local function loadScript()
         notify("‼️ No script available for this game!")
     end
 end
+
 loadScript()
+
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+
+local lp = Players.LocalPlayer
+
+StarterGui:SetCore("SendNotification", {
+    Title = "DYHUB",
+    Text = "💳 Premium Loaded! | @" .. lp.DisplayName .. " | Days: 9B",
+    Duration = 4
+})

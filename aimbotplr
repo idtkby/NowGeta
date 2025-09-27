@@ -56,17 +56,38 @@ local function updateDrawings()
 	FOVring.Radius = fov * (Cam.ViewportSize.Y / 1080)
 end
 
--- Tìm player gần nhất hợp lệ
+local lastTarget = nil
+local function buildIgnoreList()
+    local ignore = {}
+    if Player.Character then table.insert(ignore, Player.Character) end
+    if Player:FindFirstChild("Backpack") then table.insert(ignore, Player.Backpack) end
+
+    -- thêm toàn bộ accessory/tool/model của enemy
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.Character then
+            for _, child in ipairs(plr.Character:GetChildren()) do
+                if child:IsA("Accessory") or child:IsA("Tool") or child:IsA("Model") then
+                    table.insert(ignore, child)
+                end
+            end
+        end
+    end
+    return ignore
+end
+
+-- cập nhật ignoreList mỗi 1s để tiết kiệm
+task.spawn(function()
+    while true do
+        raycastParams.FilterDescendantsInstances = buildIgnoreList()
+        task.wait(1)
+    end
+end)
+
+-- get target
 local function getTarget()
     local nearest, minDistance = nil, math.huge
     local viewportCenter = Cam.ViewportSize / 2
 
-    -- luôn loại bỏ toàn bộ local character + backpack khỏi raycast
-    local ignoreList = {}
-    if Player.Character then table.insert(ignoreList, Player.Character) end
-    if Player:FindFirstChild("Backpack") then table.insert(ignoreList, Player.Backpack) end
-
-    -- duyệt qua players
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= Player 
         and (not Player.Team or not plr.Team or plr.Team ~= Player.Team)
@@ -79,26 +100,12 @@ local function getTarget()
             local screenPos, visible = Cam:WorldToViewportPoint(head.Position)
 
             if visible and screenPos.Z > 0 then
-                -- ⚡ thêm toàn bộ part đang gắn vào character enemy vào ignoreList
-                local enemyIgnore = {}
-                for _, child in ipairs(plr.Character:GetChildren()) do
-                    if child:IsA("Accessory") or child:IsA("Tool") or child:IsA("Model") then
-                        table.insert(enemyIgnore, child)
-                    end
-                end
-
-                raycastParams.FilterDescendantsInstances = {}
-                for _, v in ipairs(ignoreList) do table.insert(raycastParams.FilterDescendantsInstances, v) end
-                for _, v in ipairs(enemyIgnore) do table.insert(raycastParams.FilterDescendantsInstances, v) end
-
-                -- raycast check tường
                 local ray = workspace:Raycast(
                     Cam.CFrame.Position,
                     (head.Position - Cam.CFrame.Position).Unit * 1000,
                     raycastParams
                 )
 
-                -- nếu ray hit part thuộc nhân vật enemy (BodyPart) thì hợp lệ
                 if ray and ray.Instance:IsDescendantOf(plr.Character) then
                     local distance = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
                     if distance < minDistance and distance < fov then
@@ -110,6 +117,12 @@ local function getTarget()
         end
     end
 
+    -- fallback: nếu mất target tạm thời, vẫn aim theo target cũ trong 0.3s
+    if not nearest and lastTarget and lastTarget.Character and lastTarget.Character:FindFirstChild("Head") then
+        nearest = lastTarget
+    end
+
+    lastTarget = nearest
     return nearest
 end
 

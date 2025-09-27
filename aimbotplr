@@ -56,15 +56,20 @@ local function updateDrawings()
 	FOVring.Radius = fov * (Cam.ViewportSize.Y / 1080)
 end
 
--- Tìm player gần nhất hợp lệ
 local function getTarget()
     local nearest, minDistance = nil, math.huge
     local viewportCenter = Cam.ViewportSize / 2
 
-    -- luôn loại bỏ toàn bộ local character + backpack khỏi raycast
+    -- luôn loại bỏ toàn bộ character + backpack của tất cả players
     local ignoreList = {}
-    if Player.Character then table.insert(ignoreList, Player.Character) end
-    if Player:FindFirstChild("Backpack") then table.insert(ignoreList, Player.Backpack) end
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr.Character then
+            table.insert(ignoreList, plr.Character)
+        end
+        if plr:FindFirstChild("Backpack") then
+            table.insert(ignoreList, plr.Backpack)
+        end
+    end
     raycastParams.FilterDescendantsInstances = ignoreList
 
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -79,14 +84,11 @@ local function getTarget()
             local screenPos, visible = Cam:WorldToViewportPoint(head.Position)
 
             if visible and screenPos.Z > 0 then
-                -- raycast check tường
                 local ray = workspace:Raycast(
                     Cam.CFrame.Position,
                     (head.Position - Cam.CFrame.Position).Unit * 1000,
                     raycastParams
                 )
-
-                -- nếu ray hit part của target thì hợp lệ
                 if ray and ray.Instance:IsDescendantOf(plr.Character) then
                     local distance = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
                     if distance < minDistance and distance < fov then

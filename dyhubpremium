@@ -17,13 +17,15 @@ end
 -- ===================== Free Version ==========================
 
 local FreeVersionallowedGamesByCreatorId = {
+    [34869880] = {name = "Plants Vs Brainrots", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Pvsb.lua"},
     [9482918] = {name = "The Mimic (DYHUB X RAELHUB)", url = "https://raw.githubusercontent.com/Laelmano24/Rael-Hub/refs/heads/main/main.txt"},
-    [6042520] = {name = "99 Nights in the Forest", url = "https://raw.githubusercontent.com/dyumra/99NIGHT/refs/heads/main/nigga.lua"},
+    [6042520] = {name = "99 Nights in the Forest", url = "https://raw.githubusercontent.com/dyumra/99NIGHT/refs/heads/main/Gagga.lua"},
     [12832037] = {name = "Baddies", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/BBdie.lua"},
     [35888785] = {name = "Prospecting", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Prospecting.lua"},
     [35786254] = {name = "Mines", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Mine.lua"},
     [35815576] = {name = "Schedule 🥔", url = "https://pastebin.com/raw/gCSmFnbb"},
-    [6022628] = {name = "ST : Blockade Battlefront", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/stbb.lua"},
+    [8818124] = {name = "Violence District", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Hahauahhwuwkmakjaja.lua"},
+    [6022628] = {name = "ST : Blockade Battlefront", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/STBB/test.lua"},
     [12398672] = {name = "Ink Game", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/inkgame.lua"},
 }
 
@@ -56,7 +58,7 @@ local FreeVersionallowedGamesByPlaceId = {
     ["139143597034555"] = {name = "+1 Speed Prison Escape [🦑]", url = "https://pastebin.com/raw/RKPm9zJB"},
     ["119048529960596"] = {name = "Restaurant Tycoon 3", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/rt3.lua"},
     ["124180759222403"] = {name = "Ants", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Ant"},
-    ["17357719939"] = {name = "Wizard West", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Ww.lua"},
+    ["17357719939"] = {name = "Wizard West", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Wwv2.lua"},
     ["116495829188952"] = {name = "Dead Rails", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Drlobby.lua"},
     ["70876832253163"] = {name = "Dead Rails [In-game]", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/DRDYHUB.lua"},
     ["136806264049477"] = {name = "Keys and Knives", url = "https://raw.githubusercontent.com/gumanba/Scripts/main/KeysandKnives"},
@@ -68,7 +70,9 @@ local FreeVersionallowedGamesByPlaceId = {
 -- ===================== Premium Version ==========================
     
 local allowedGamesforPremiumByCreatorId = {
-    [3049798] = {name = "Doors", url = "https://raw.githubusercontent.com/KINGHUB01/BlackKing-obf/main/Doors%20Blackking%20And%20BobHub"},
+    [35595896] = {name = "Build ur Base", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Bub.lua"},
+    [36008925] = {name = "Build a Zoo", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Baz.lua"},
+    [3049798] = {name = "Doors", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/door.lua"},
     [4372130] = {name = "Blox Fruits", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/bfv2.lua"},
     [5292947] = {name = "ASTD X", url = "https://raw.githubusercontent.com/bunnnwee/JimiHub/refs/heads/main/ASTDX-Normal"},
     [5205652] = {name = "SPECTER", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Specter/specter.lua"},
@@ -87,7 +91,7 @@ local allowedGamesforPremiumByCreatorId = {
     [33859442] = {name = "Anime Royale", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Aroyal.lua"},
     [15009415] = {name = "Anime Ranger X", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/arx.lua"},
     [35154829] = {name = "Anime Power", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/ap.lua"},
-    [35789249] = {name = "Grow a Garden", url = "https://raw.githubusercontent.com/dyumra/GAG/refs/heads/main/GAG.lua"},
+    [35789249] = {name = "Grow a Garden", url = "https://raw.githubusercontent.com/dyumra/GAG/refs/heads/main/GAG.lua"},  
     [3461453] = {name = "Rivals", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/RIVALS.lua"},
     [278905007] = {name = "Build My Car", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/BMC.lua"},
     [34873522] = {name = "Anime Eternal", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Anime-Eternal.lua"},
@@ -107,7 +111,7 @@ local AllowGameforPremiumByPlaceId = {
     ["105141077088559"] = {name = "Anime RaiIs in-Game", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/ARAW.lua"},
     ["72992062125248"] = {name = "Hunters", url = "https://raw.githubusercontent.com/LawrenceLud/Templo/refs/heads/main/TemploLoader.lua"},
     ["133781619558477"] = {name = "Steal a K-Pop Demon Hunter", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Sakph.lua"},
-    ["10260193230"] = {name = "Meme Sea", url = "https://gitlab.com/Lmy77/menu/-/raw/main/infinityx"},
+    ["10260193230"] = {name = "Meme Sea", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/MemeSea.lua"},
     ["88728793053496"] = {name = "Build A Car", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/BaC.lua"},
     ["133487110685834"] = {name = "4KING CUTIE", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/4KING"},
     ["104965156633249"] = {name = "Poop", url = "https://raw.githubusercontent.com/dyumra/DYHUB-Universal-Game/refs/heads/main/Poop"},

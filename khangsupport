@@ -69,8 +69,7 @@ elseif game.PlaceId == 5247067896 or game.PlaceId == 4623386862 or game.PlaceId 
     Duration = 5
 })
 wait(0.3)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/main/forsaken.lua"))()
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/main/piggy%20gui"))()
 
 else
     loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/KhangHub"))() -- Game Hub (Ko dính id game nào)

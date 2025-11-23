@@ -1,7 +1,7 @@
 if game.PlaceId == 70876832253163 then -- Dead Rails (Alpha)
     game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Waiting...",
-    Text = "Loading Dead Rails...",
+    Text = "Loading Dead Rails",
     Duration = 5
 })
 wait(0.3)
@@ -56,7 +56,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/
 elseif game.PlaceId == 18687417158 then -- [NOLI🎭] Forsaken}
     game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Waiting...",
-    Text = "Loading Forsaken...",
+    Text = "Loading Forsaken",
     Duration = 5
 })
 wait(0.3)
@@ -65,7 +65,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/main/forsak
 elseif game.PlaceId == 5247067896 or game.PlaceId == 4623386862 or game.PlaceId == 5661005779 then -- piggy
     game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Waiting...",
-    Text = "Loading Piggy...",
+    Text = "Loading Piggy",
     Duration = 5
 })
 wait(0.3)
@@ -79,6 +79,15 @@ elseif game.PlaceId == 99078474560152 then -- M.E.G. Endless Reality
 })
 wait(0.3)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/main/M.e.g"))()
+
+elseif game.PlaceId == 138103330716004 then -- After 3 AM
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Waiting...",
+    Text = "Loading After 3 AM",
+    Duration = 5
+})
+wait(0.3)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/After3am.lua"))()
 
 
 else

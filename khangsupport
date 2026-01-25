@@ -1,109 +1,85 @@
-if game.PlaceId == 70876832253163 then -- Dead Rails (Alpha)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Waiting...",
-    Text = "Loading Dead Rails",
-    Duration = 5
-})
-wait(0.3)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/Dead%20rails%20hub"))()
-elseif game.PlaceId == 115345163333015 or game.PlaceId == 1985320156 then -- Eyes
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Waiting...",
-    Text = "Loading Eyes...",
-    Duration = 5
-})
-wait(0.3)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/Eyes%20hub"))()
-elseif game.PlaceId == 121308443347459 or game.PlaceId == 17474746614 then -- 7 Days To Live
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Waiting...",
-    Text = "Loading 7 Days...",
-    Duration = 5
-})
-wait(0.3)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/7DaysForest"))()
+-- SERVICES
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local MarketplaceService = game:GetService("MarketplaceService")
 
-
-elseif game.PlaceId == 116387287343653 then -- Peta School
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Waiting...",
-    Text = "Loading PETA School...",
-    Duration = 5
-})
-wait(0.3)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/PETAPETA%3A%20School%20of%20Nightmares%20UI"))() 
-
-
-elseif game.PlaceId == 14476003462 then -- Peta lv 6
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Waiting...",
-    Text = "Loading PETA Lv6...",
-    Duration = 5
-})
-wait(0.3)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/PETAPETA%7C%20Level%206%20UI"))()
-
-
-elseif game.PlaceId == 104592421039274 then -- AOONI Nightmare
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Waiting...",
-    Text = "Loading AOONI...",
-    Duration = 5
-})
-wait(0.3)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/AOONI%20Nightmare%20UI"))() 
-
-elseif game.PlaceId == 18687417158 then -- [NOLI🎭] Forsaken}
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Waiting...",
-    Text = "Loading Forsaken",
-    Duration = 5
-})
-wait(0.3)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/main/forsaken.lua"))()
-
-elseif game.PlaceId == 5247067896 or game.PlaceId == 4623386862 or game.PlaceId == 5661005779 then -- piggy
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Waiting...",
-    Text = "Loading Piggy",
-    Duration = 5
-})
-wait(0.3)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/main/piggy%20gui"))()
-
-elseif game.PlaceId == 99078474560152 then -- M.E.G. Endless Reality
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Waiting...",
-    Text = "Loading M.E.G. Endles..",
-    Duration = 5
-})
-wait(0.3)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/main/M.e.g"))()
-
-elseif game.PlaceId == 138103330716004 then -- After 3 AM
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Waiting...",
-    Text = "Loading After 3 AM",
-    Duration = 5
-})
-wait(0.3)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/After3am.lua"))()
-
-
-else
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/KhangHub"))() -- Game Hub (Ko dính id game nào)
+-- NOTIFY
+local function notify(text)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "Waiting...",
+            Text = text,
+            Duration = 5
+        })
+    end)
 end
 
---[[
-elseif game.PlaceId == 0000 or game.PlaceId == 0000 or game.PlaceId == 0000 then
-]]
+-- LOADER
+local function load(url)
+    task.wait(0.3)
+    loadstring(game:HttpGet(url))()
+end
 
+local pid = game.PlaceId
 
+-- GAME CHECK
+if pid == 70876832253163 then
+    notify("Loading Dead Rails")
+    load("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/Dead%20rails%20hub")
 
+elseif pid == 115345163333015 or pid == 1985320156 then
+    notify("Loading Eyes")
+    load("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/Eyes%20hub")
 
+elseif pid == 121308443347459 or pid == 17474746614 then
+    notify("Loading 7 Days")
+    load("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/7DaysForest")
 
--- Điều kiện: bạn phải đang sử dụng Executor hỗ trợ `queueteleport`
--- Ví dụ: KRNL, Synapse X đều hỗ trợ
+elseif pid == 116387287343653 then
+    notify("Loading PETA School")
+    load("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/PETAPETA%3A%20School%20of%20Nightmares%20UI")
+
+elseif pid == 14476003462 then
+    notify("Loading PETA Lv6")
+    load("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/PETAPETA%7C%20Level%206%20UI")
+
+elseif pid == 104592421039274 then
+    notify("Loading AOONI")
+    load("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/AOONI%20Nightmare%20UI")
+
+elseif pid == 18687417158 then
+    notify("Loading Forsaken")
+    load("https://raw.githubusercontent.com/idtkby/Xd/main/forsaken.lua")
+
+elseif pid == 5247067896 or pid == 4623386862 or pid == 5661005779 then
+    notify("Loading Piggy")
+    load("https://raw.githubusercontent.com/idtkby/Xd/main/piggy%20gui")
+
+elseif pid == 99078474560152 then
+    notify("Loading M.E.G")
+    load("https://raw.githubusercontent.com/idtkby/Xd/main/M.e.g")
+
+elseif pid == 138103330716004 then
+    notify("Loading After 3 AM")
+    load("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/After3am.lua")
+
+else
+    -- CHECK TÊN GAME: SPECTER
+    local name = ""
+    pcall(function()
+        name = MarketplaceService:GetProductInfo(pid).Name
+    end)
+
+    if string.find(string.upper(name), "SPECTER") then
+        notify("Loading SPECTER")
+        load("https://raw.githubusercontent.com/idtkby/Xd/main/specter2")
+    else
+        -- HUB CHUNG
+        load("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/KhangHub")
+    end
+end
+
+-- ================== QUEUE TELEPORT ==================
 
 local Players = game:GetService("Players")
 local TeleportCheck = false

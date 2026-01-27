@@ -1,3 +1,18 @@
+
+-- ================== QUEUE TELEPORT ==================
+local Players = game:GetService("Players")
+local TeleportCheck = false
+local KeepInfYield = true -- ← Gán biến này là true để bật tính năng
+local queueteleport = queue_on_teleport or queue_on_teleport or syn and syn.queue_on_teleport -- Phổ biến nhất
+
+Players.LocalPlayer.OnTeleport:Connect(function(State)
+if KeepInfYield and not TeleportCheck and queueteleport then
+
+queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/idtkby/NowGeta/main/khangsupport'))()")
+end
+end)
+
+
 -- SERVICES
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
@@ -78,16 +93,3 @@ else
         load("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/KhangHub")
     end
 end
-
--- ================== QUEUE TELEPORT ==================
-local Players = game:GetService("Players")
-local TeleportCheck = false
-local KeepInfYield = true -- ← Gán biến này là true để bật tính năng
-local queueteleport = queue_on_teleport or queue_on_teleport or syn and syn.queue_on_teleport -- Phổ biến nhất
-
-Players.LocalPlayer.OnTeleport:Connect(function(State)
-if KeepInfYield and not TeleportCheck and queueteleport then
-
-queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/idtkby/NowGeta/main/khangsupport'))()")
-end
-end)

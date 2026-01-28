@@ -1,17 +1,24 @@
-
 -- ================== QUEUE TELEPORT ==================
 local Players = game:GetService("Players")
-local TeleportCheck = false
-local KeepInfYield = true -- ← Gán biến này là true để bật tính năng
-local queueteleport = queue_on_teleport or queue_on_teleport or syn and syn.queue_on_teleport -- Phổ biến nhất
+local queueteleport = queue_on_teleport or (syn and syn.queue_on_teleport)
 
-Players.LocalPlayer.OnTeleport:Connect(function(State)
-if KeepInfYield and not TeleportCheck and queueteleport then
-
-queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/idtkby/NowGeta/main/khangsupport'))()")
+-- Sử dụng biến toàn cục để tránh bị thực thi lại nếu script chạy nhiều lần
+if not _G.TeleportFixed then
+    _G.TeleportFixed = true
+    
+    Players.LocalPlayer.OnTeleport:Connect(function(State)
+        -- Chỉ thực hiện khi State là 'Started' (bắt đầu tp)
+        if State == Enum.TeleportState.Started and queueteleport then
+            queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/idtkby/NowGeta/main/khangsupport'))()")
+        end
+    end)
 end
-end)
 
+
+
+-- Chặn script chạy 2 lần trên cùng 1 server
+if _G.ScriptLoaded then return end
+_G.ScriptLoaded = true
 
 -- SERVICES
 local Players = game:GetService("Players")
@@ -22,20 +29,25 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local function notify(text)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
-            Title = "Waiting...",
+            Title = "Khang Support",
             Text = text,
             Duration = 5
         })
     end)
 end
 
--- LOADER
+-- LOADER (Thêm kiểm tra pcall để tránh crash)
 local function load(url)
-    task.wait(0.3)
-    loadstring(game:HttpGet(url))()
+    task.wait(0.5)
+    local success, err = pcall(function()
+        loadstring(game:HttpGet(url))()
+    end)
+    if not success then warn("Load error: " .. err) end
 end
 
 local pid = game.PlaceId
+-- [Giữ nguyên phần IF ELSE check PlaceId của bạn ở đây]
+
 
 -- GAME CHECK
 if pid == 70876832253163 then

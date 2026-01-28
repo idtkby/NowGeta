@@ -1,18 +1,15 @@
--- ================== QUEUE TELEPORT ==================
 local Players = game:GetService("Players")
-local queueteleport = queue_on_teleport or (syn and syn.queue_on_teleport)
+local TeleportCheck = false
+local KeepInfYield = true -- ← Gán biến này là true để bật tính năng
+local queueteleport = queue_on_teleport or queue_on_teleport or syn and syn.queue_on_teleport -- Phổ biến nhất
 
--- Sử dụng biến toàn cục để tránh bị thực thi lại nếu script chạy nhiều lần
-if not _G.TeleportFixed then
-    _G.TeleportFixed = true
-    
-    Players.LocalPlayer.OnTeleport:Connect(function(State)
-        -- Chỉ thực hiện khi State là 'Started' (bắt đầu tp)
-        if State == Enum.TeleportState.Started and queueteleport then
-            queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/idtkby/NowGeta/main/khangsupport'))()")
-        end
-    end)
+Players.LocalPlayer.OnTeleport:Connect(function(State)
+if KeepInfYield and not TeleportCheck and queueteleport then
+TeleportCheck = true
+queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/idtkby/NowGeta/main/khangsupport'))()")
 end
+end)
+
 
 
 

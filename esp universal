@@ -1,0 +1,58 @@
+local Players = game:GetService("Players")
+
+-- Kiểm tra model có phải nhân vật người chơi không
+local function isPlayerCharacter(model)
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player.Character == model then
+			return true
+		end
+	end
+	return false
+end
+
+-- Thêm ESP + Highlight đỏ
+local function espRedItalic(npc)
+	if npc:IsA("Model") 
+		and not isPlayerCharacter(npc)
+		and npc:FindFirstChild("HumanoidRootPart") 
+		and npc:FindFirstChildOfClass("Humanoid")
+		and not npc:FindFirstChild("ESP_RedItalic") then
+
+		-- BillboardGui (ESP chữ)
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "ESP_RedItalic"
+		billboard.Size = UDim2.new(0, 100, 0, 40)
+		billboard.Adornee = npc.HumanoidRootPart
+		billboard.AlwaysOnTop = true
+		billboard.Parent = npc
+
+		local label = Instance.new("TextLabel", billboard)
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.Text = npc.Name
+		label.TextColor3 = Color3.fromRGB(255, 255,255) -- Màu đỏ
+		label.TextStrokeTransparency = 0.4
+		label.Font = Enum.Font.Bodoni
+		label.TextScaled = true
+
+		-- Highlight viền đỏ
+		local highlight = Instance.new("Highlight")
+		highlight.Name = "ESP_RedOutline"
+		highlight.FillColor = Color3.fromRGB(255, 255,255)
+		highlight.FillTransparency = 1
+		highlight.OutlineColor = Color3.fromRGB(255, 255,255)
+		highlight.OutlineTransparency = 0.1
+		highlight.Parent = npc
+	end
+end
+
+-- Quét ban đầu
+for _, npc in pairs(workspace:GetDescendants()) do
+	espRedItalic(npc)
+end
+
+-- Tự động thêm ESP khi NPC mới xuất hiện
+workspace.DescendantAdded:Connect(function(obj)
+	task.wait()
+	espRedItalic(obj)
+end)

@@ -11,7 +11,7 @@ if ( not game:IsLoaded() ) then
 end
 
 --- Settings ---
-local existingSettings = _G.RadarSettings or {}
+local existingSettings = _G.RadarSettingsc or {}
 local settings = {
     RADAR_LINES = true;
     RADAR_LINE_DISTANCE = 50;
@@ -33,7 +33,7 @@ local settings = {
     OFFSCREEN_TRANSPARENCY = 0.3;
     USE_QUADS = true;
     
-    RADAR_THEME = {
+    RADAR_THEMEc = {
         Outline = Color3.fromRGB(35, 35, 45);
         Background = Color3.fromRGB(25, 25, 35);
         DragHandle = Color3.fromRGB(50, 50, 255);

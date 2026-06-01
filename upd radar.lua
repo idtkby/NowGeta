@@ -12,7 +12,7 @@ if ( not game:IsLoaded() ) then
 end
 
 --- Settings ---
-local existingSettings = _G.RadarSettings or {}
+local existingSettings = _G.RadarSettings2 or {}
 local settings = {
     --- Radar settings
     RADAR_LINES = true; 
@@ -43,7 +43,7 @@ local settings = {
     VISIBLITY_CHECK = false; 
     
     --- Theme
-    RADAR_THEME = {
+    RADAR_THEME2 = {
         Outline = Color3.fromRGB(35, 35, 45); 
         Background = Color3.fromRGB(25, 25, 35); 
         DragHandle = Color3.fromRGB(50, 50, 255); 

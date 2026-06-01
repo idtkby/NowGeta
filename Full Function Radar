@@ -1,4 +1,4 @@
-,--- Drawing Unified Player & NPC Radar
+--- Drawing Unified Player & NPC Radar
 --- Base code by topit | Fully Merged & Optimized v1.4.0
 --- Khắc phục hoàn toàn lỗi đơ vị trí, mất dấu khi mục tiêu văng ra ngoài khu vực StreamingEnabled
 local scriptver = 'v1.4.0-Unified_Ultimate'

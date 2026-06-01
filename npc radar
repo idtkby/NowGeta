@@ -1,0 +1,536 @@
+--- Drawing NPC Radar
+--- Modified from topit's Player Radar to support NPCs with HumanoidRootPart
+local scriptver = 'v1.3.5-NPC_Fixed'
+
+if ( _G.RadarKill ) then
+    _G.RadarKill()
+end
+
+if ( not game:IsLoaded() ) then
+    game.Loaded:Wait()
+end
+
+--- Settings ---
+local existingSettings = _G.RadarSettings or {}
+local settings = {
+    RADAR_LINES = true;
+    RADAR_LINE_DISTANCE = 50;
+    RADAR_SCALE = 1;              -- Tỷ lệ zoom khoảng cách NPC bên trong radar (+ / - để chỉnh)
+    RADAR_RADIUS = 125;           -- Kích thước/Bán kính vòng tròn Radar ([ / ] để chỉnh)
+    RADAR_START_POS = Vector2.new(300, 250); -- Vị trí xuất hiện mặc định của Radar trên màn hình
+    
+    RADAR_ROTATION = true;
+    SMOOTH_ROT = true;
+    SMOOTH_ROT_AMNT = 30;
+    CARDINAL_DISPLAY = true;
+    
+    DISPLAY_OFFSCREEN = true;
+    MARKER_SCALE_BASE = 1.25;
+    MARKER_SCALE_MAX = 1.25;
+    MARKER_SCALE_MIN = 0.75;
+    MARKER_FALLOFF = true;
+    MARKER_FALLOFF_AMNT = 125;
+    OFFSCREEN_TRANSPARENCY = 0.3;
+    USE_QUADS = true;
+    
+    RADAR_THEME = {
+        Outline = Color3.fromRGB(35, 35, 45);
+        Background = Color3.fromRGB(25, 25, 35);
+        DragHandle = Color3.fromRGB(50, 50, 255);
+        Cardinal_Lines = Color3.fromRGB(110, 110, 120);
+        Distance_Lines = Color3.fromRGB(65, 65, 75);
+        
+        NPC_Marker = Color3.fromRGB(255, 25, 25); -- Màu đỏ cho NPC
+        Local_Marker = Color3.fromRGB(115, 25, 255);
+    };
+}
+
+for k, v in pairs(existingSettings) do 
+    if ( v ~= nil ) then settings[k] = v end
+end
+
+local RADAR_LINES = settings.RADAR_LINES
+local RADAR_LINE_DISTANCE = settings.RADAR_LINE_DISTANCE
+local RADAR_SCALE = settings.RADAR_SCALE
+local RADAR_RADIUS = settings.RADAR_RADIUS
+local RADAR_ROTATION = settings.RADAR_ROTATION
+local SMOOTH_ROT = settings.SMOOTH_ROT
+local SMOOTH_ROT_AMNT = settings.SMOOTH_ROT_AMNT
+local CARDINAL_DISPLAY = settings.CARDINAL_DISPLAY
+local DISPLAY_OFFSCREEN = settings.DISPLAY_OFFSCREEN
+local MARKER_SCALE_BASE = settings.MARKER_SCALE_BASE
+local MARKER_SCALE_MAX = settings.MARKER_SCALE_MAX
+local MARKER_SCALE_MIN = settings.MARKER_SCALE_MIN
+local MARKER_FALLOFF = settings.MARKER_FALLOFF
+local MARKER_FALLOFF_AMNT = settings.MARKER_FALLOFF_AMNT
+local OFFSCREEN_TRANSPARENCY = settings.OFFSCREEN_TRANSPARENCY
+local USE_QUADS = settings.USE_QUADS
+local RADAR_THEME = settings.RADAR_THEME 
+
+--- Services ---
+local inputService = game:GetService('UserInputService')
+local runService = game:GetService('RunService')
+local players = game:GetService('Players')
+
+local newV2 = Vector2.new
+local newV3 = Vector3.new
+local mathSin = math.sin
+local mathCos = math.cos
+local mathExp = math.exp
+
+local scriptCns = {}
+local radarObjects = {}
+local drawObjects = {}
+
+local markerScale = math.clamp(RADAR_SCALE, MARKER_SCALE_MIN, MARKER_SCALE_MAX) * MARKER_SCALE_BASE
+local scaleVec = newV2(markerScale, markerScale)
+
+local quadPointA = newV2(0, 5)   * scaleVec
+local quadPointB = newV2(4, -5)  * scaleVec
+local quadPointC = newV2(0, -3)  * scaleVec
+local quadPointD = newV2(-4, -5) * scaleVec
+
+local function newDrawObj(objectClass, objectProperties)
+    local obj = Drawing.new(objectClass)
+    table.insert(drawObjects, obj)
+    for i, v in pairs(objectProperties) do obj[i] = v end
+    return obj
+end
+
+-- Hàm xóa Drawing Object an toàn tránh rò rỉ bộ nhớ
+local function removeDrawObj(obj)
+    local idx = table.find(drawObjects, obj)
+    if idx then table.remove(drawObjects, idx) end
+    obj:Remove()
+end
+
+-- Đã sửa lỗi: Hỗ trợ Lerp cho cả Number (Transparency)
+local function tweenExp(obj, property, dest, duration) 
+    task.spawn(function()
+        local initialVal = obj[property]
+        local tweenTime = 0
+        while ( tweenTime < duration ) do 
+            local alpha = 1 - math.pow(2, -10 * tweenTime / duration)
+            if type(initialVal) == "number" then
+                obj[property] = initialVal + (dest - initialVal) * alpha
+            else
+                obj[property] = initialVal:Lerp(dest, alpha)
+            end
+            tweenTime += task.wait()
+        end
+        obj[property] = dest
+    end)
+end
+
+local clientPlayer = players.LocalPlayer
+local clientRoot
+scriptCns.charRespawn = clientPlayer.CharacterAdded:Connect(function(newChar) 
+    clientRoot = newChar:WaitForChild('HumanoidRootPart')
+    radarObjects.loadText.Visible = not clientRoot
+    radarObjects.loadOverlay.Visible = not clientRoot
+end)
+if clientPlayer.Character then clientRoot = clientPlayer.Character:FindFirstChild('HumanoidRootPart') end
+
+local clientCamera = workspace.CurrentCamera or workspace:FindFirstChildOfClass('Camera')
+scriptCns.cameraUpdate = workspace:GetPropertyChangedSignal('CurrentCamera'):Connect(function() 
+    clientCamera = workspace.CurrentCamera or workspace:FindFirstChildOfClass('Camera')
+end)
+
+-- Thông báo hướng dẫn phím tắt (Dành cho PC)
+local halfWidth = clientCamera.ViewportSize.X / 2
+local notif = Drawing.new('Text')
+table.insert(drawObjects, notif)
+notif.Center = true; notif.Color = Color3.new(1,1,1); notif.Font = Drawing.Fonts.UI; notif.Outline = true
+notif.Position = newV2(halfWidth, 200); notif.Size = 18; notif.Visible = true
+notif.Text = 'Loaded NPC Radar '..scriptver..'\n[PC] [-/+] Tăng giảm Zoom | [[ / ]] Co giãn Radar\n[PC & MOBILE] Chạm giữ/Click vào tâm Radar để Kéo Thả vị trí!'
+task.delay(7, function() tweenExp(notif, 'Transparency', 0, 0.5) task.wait(0.5) removeDrawObj(notif) end)
+
+--- Khởi tạo giao diện Radar UI ---
+local radarLines = {}
+local radarPosition = settings.RADAR_START_POS
+
+radarObjects.main = newDrawObj('Circle', {Color = RADAR_THEME.Background; Position = radarPosition; Filled = true; Visible = true; NumSides = 40; Radius = RADAR_RADIUS; ZIndex = 300;})
+radarObjects.outline = newDrawObj('Circle', {Color = RADAR_THEME.Outline; Position = radarPosition; Filled = false; Visible = true; NumSides = 40; Thickness = 5; Radius = RADAR_RADIUS; ZIndex = 299;})
+radarObjects.dragHandle = newDrawObj('Circle', {Color = RADAR_THEME.DragHandle; Position = radarPosition; Filled = false; Visible = false; NumSides = 40; Radius = RADAR_RADIUS; Thickness = 3; ZIndex = 325;})
+radarObjects.loadOverlay = newDrawObj('Circle', {Color = Color3.new(0,0,0); Filled = true; NumSides = 40; Position = radarPosition; Radius = RADAR_RADIUS; Transparency = 0.5; Visible = clientRoot == nil; ZIndex = 319;})
+radarObjects.loadText = newDrawObj('Text', {Center = true; Color = Color3.new(1,1,1); Font = Drawing.Fonts.UI; Outline = true; Position = radarPosition - newV2(0, 15); Size = 18; Text = 'Waiting for spawn...'; Visible = clientRoot == nil; ZIndex = 320;})
+radarObjects.zoomText = newDrawObj('Text', {Center = true; Color = Color3.new(1,1,1); Font = Drawing.Fonts.UI; Outline = true; Size = 16; Transparency = 0; Visible = false; ZIndex = 306;})
+radarObjects.hoverText = newDrawObj('Text', {Center = true; Color = Color3.new(1,1,1); Font = Drawing.Fonts.UI; Outline = true; Position = radarPosition; Size = 15; Visible = false; ZIndex = 306;})
+
+if ( USE_QUADS ) then 
+    radarObjects.localMark = newDrawObj('Quad', {Color = RADAR_THEME.Local_Marker; Filled = true; Thickness = 2; Visible = true; ZIndex = 305;})
+    radarObjects.localMarkStroke = newDrawObj('Quad', {Color = RADAR_THEME.Local_Marker; Filled = false; Thickness = 2; Visible = true; ZIndex = 304;})
+else
+    radarObjects.localMark = newDrawObj('Circle', {Color = RADAR_THEME.Local_Marker; Filled = true; NumSides = 20; Radius = markerScale * 3; Visible = true; ZIndex = 305;})
+    radarObjects.localMarkStroke = newDrawObj('Circle', {Color = RADAR_THEME.Local_Marker; Filled = false; NumSides = 20; Radius = markerScale * 3; Visible = true; ZIndex = 304;})
+end
+
+local function updateRadarLines()
+    for _, l in ipairs(radarLines) do removeDrawObj(l) end
+    radarLines = {}
+    if not RADAR_LINES then return end
+    
+    local lineCount = math.floor(RADAR_RADIUS / (RADAR_SCALE * RADAR_LINE_DISTANCE))
+    for i = 1, lineCount do
+        local lineRadius = i * (RADAR_SCALE * RADAR_LINE_DISTANCE)
+        if lineRadius < RADAR_RADIUS then
+            local line = newDrawObj('Circle', {
+                Color = RADAR_THEME.Distance_Lines; Position = radarPosition; Radius = lineRadius;
+                Filled = false; Visible = true; Transparency = (i % 4 == 0) and 0.6 or 0.2; NumSides = 40; Thickness = 1; ZIndex = 300;
+            })
+            table.insert(radarLines, line)
+        end
+    end
+end
+
+if RADAR_LINES then
+    radarObjects.horizontalLine = newDrawObj('Line', {Color = RADAR_THEME.Cardinal_Lines; Visible = true; Thickness = 1; Transparency = 0.2; ZIndex = 300;})
+    radarObjects.verticalLine = newDrawObj('Line', {Color = RADAR_THEME.Cardinal_Lines; Visible = true; Thickness = 1; Transparency = 0.2; ZIndex = 300;})
+    updateRadarLines()
+end
+
+if CARDINAL_DISPLAY then
+    radarObjects.directionN = newDrawObj('Text', {Center = true; Color = Color3.fromRGB(255, 75, 75); Font = Drawing.Fonts.UI; Outline = true; Size = 16; Text = 'N'; Visible = true; ZIndex = 303;})
+    radarObjects.directionS = newDrawObj('Text', {Center = true; Color = Color3.new(1,1,1); Font = Drawing.Fonts.UI; Outline = true; Size = 14; Text = 'S'; Visible = true; ZIndex = 303;})
+    radarObjects.directionW = newDrawObj('Text', {Center = true; Color = Color3.new(1,1,1); Font = Drawing.Fonts.UI; Outline = true; Size = 14; Text = 'W'; Visible = true; ZIndex = 303;})
+    radarObjects.directionE = newDrawObj('Text', {Center = true; Color = Color3.new(1,1,1); Font = Drawing.Fonts.UI; Outline = true; Size = 14; Text = 'E'; Visible = true; ZIndex = 303;})
+end
+
+local function setRadarScale()
+    markerScale = math.clamp(RADAR_SCALE, MARKER_SCALE_MIN, MARKER_SCALE_MAX) * MARKER_SCALE_BASE
+    updateRadarLines()
+    if USE_QUADS then
+        scaleVec = newV2(markerScale, markerScale)
+        quadPointA = newV2(0, 5)   * scaleVec
+        quadPointB = newV2(4, -5)  * scaleVec
+        quadPointC = newV2(0, -3)  * scaleVec
+        quadPointD = newV2(-4, -5) * scaleVec
+    else
+        radarObjects.localMark.Radius = markerScale * 3
+        radarObjects.localMarkStroke.Radius = markerScale * 3
+    end
+end
+
+local function updateRadarSize()
+    radarObjects.main.Radius = RADAR_RADIUS
+    radarObjects.outline.Radius = RADAR_RADIUS
+    radarObjects.dragHandle.Radius = RADAR_RADIUS
+    radarObjects.loadOverlay.Radius = RADAR_RADIUS
+    updateRadarLines()
+end
+
+local function setRadarPosition(newPos)
+    radarPosition = newPos
+    radarObjects.main.Position = newPos
+    radarObjects.outline.Position = newPos
+    radarObjects.loadOverlay.Position = newPos
+    radarObjects.loadText.Position = newPos - newV2(0, 15)
+    updateRadarLines()
+    radarObjects.hoverText.Position = newPos
+end
+
+--- HỆ THỐNG PHÁT HIỆN KÉO THẢ CHO CẢ PC (MOUSE) & MOBILE (TOUCH) ---
+local radarDragging = false
+local currentTouchInput = nil
+
+scriptCns.inputBegan = inputService.InputBegan:Connect(function(io)
+    local inputType = io.UserInputType.Name
+    if inputType == 'Keyboard' then
+        local keyCode = io.KeyCode.Name
+        if keyCode == 'End' then 
+            _G.RadarKill()
+        elseif keyCode == 'Equals' then
+            radarObjects.zoomText.Position = radarPosition + newV2(0, RADAR_RADIUS + 15)
+            radarObjects.zoomText.Visible = true
+            scriptCns.zoomIn = runService.Heartbeat:Connect(function(dt)
+                RADAR_SCALE = math.clamp(RADAR_SCALE + (dt * 1.2), 0.05, 5)
+                radarObjects.zoomText.Text = string.format('Scale: %.2f', RADAR_SCALE)
+                setRadarScale()
+            end)
+        elseif keyCode == 'Minus' then
+            radarObjects.zoomText.Position = radarPosition + newV2(0, RADAR_RADIUS + 15)
+            radarObjects.zoomText.Visible = true
+            scriptCns.zoomOut = runService.Heartbeat:Connect(function(dt)
+                RADAR_SCALE = math.clamp(RADAR_SCALE - (dt * 1.2), 0.05, 5)
+                radarObjects.zoomText.Text = string.format('Scale: %.2f', RADAR_SCALE)
+                setRadarScale()
+            end)
+        elseif keyCode == 'LeftBracket' then
+            radarObjects.zoomText.Position = radarPosition + newV2(0, RADAR_RADIUS + 15)
+            radarObjects.zoomText.Visible = true
+            scriptCns.sizeDown = runService.Heartbeat:Connect(function(dt)
+                RADAR_RADIUS = math.clamp(RADAR_RADIUS - (dt * 50), 50, 400)
+                radarObjects.zoomText.Text = string.format('Radar Size: %d', RADAR_RADIUS)
+                updateRadarSize()
+            end)
+        elseif keyCode == 'RightBracket' then
+            radarObjects.zoomText.Position = radarPosition + newV2(0, RADAR_RADIUS + 15)
+            radarObjects.zoomText.Visible = true
+            scriptCns.sizeUp = runService.Heartbeat:Connect(function(dt)
+                RADAR_RADIUS = math.clamp(RADAR_RADIUS + (dt * 50), 50, 400)
+                radarObjects.zoomText.Text = string.format('Radar Size: %d', RADAR_RADIUS)
+                updateRadarSize()
+            end)
+        end
+    elseif inputType == 'MouseButton1' or inputType == 'Touch' then
+        local startPos = (inputType == 'Touch') and newV2(io.Position.X, io.Position.Y) or inputService:GetMouseLocation()
+        if (startPos - radarPosition).Magnitude < RADAR_RADIUS then
+            radarDragging = true
+            if inputType == 'Touch' then currentTouchInput = io end
+            radarObjects.dragHandle.Position = radarPosition
+            radarObjects.dragHandle.Visible = true
+            
+            scriptCns.dragCn = inputService.InputChanged:Connect(function(i)
+                if (i.UserInputType.Name == 'MouseMovement' and not currentTouchInput) or (i.UserInputType.Name == 'Touch' and i == currentTouchInput) then
+                    local movePos = (i.UserInputType.Name == 'Touch') and newV2(i.Position.X, i.Position.Y) or inputService:GetMouseLocation()
+                    radarObjects.dragHandle.Position = movePos
+                    setRadarPosition(movePos)
+                end
+            end)
+        end
+    end
+end)
+
+scriptCns.inputEnded = inputService.InputEnded:Connect(function(io)
+    local inputType = io.UserInputType.Name
+    if inputType == 'Keyboard' then
+        if scriptCns.zoomIn then scriptCns.zoomIn:Disconnect() end
+        if scriptCns.zoomOut then scriptCns.zoomOut:Disconnect() end
+        if scriptCns.sizeDown then scriptCns.sizeDown:Disconnect() end
+        if scriptCns.sizeUp then scriptCns.sizeUp:Disconnect() end
+        task.delay(1.5, function() if not radarDragging then radarObjects.zoomText.Visible = false end end)
+    elseif (inputType == 'MouseButton1' and not currentTouchInput) or (inputType == 'Touch' and io == currentTouchInput) then
+        if scriptCns.dragCn then scriptCns.dragCn:Disconnect() end
+        radarDragging = false
+        currentTouchInput = nil
+        setRadarPosition(radarObjects.dragHandle.Position)
+        radarObjects.dragHandle.Visible = false
+    end
+end)
+
+--- Bộ lưu trữ Marker cho NPC ---
+local npcMarkers = {}
+local currentNPCMarkersCenter = {} -- Dùng để lưu trữ chính xác tâm vật thể phục vụ Hover
+local hoverNPCName = nil
+
+local function createNpcMarker()
+    local mark = {}
+    if USE_QUADS then
+        mark.main = Drawing.new('Quad')
+        mark.main.Filled = true
+        mark.main.Thickness = 2
+        mark.main.ZIndex = 303
+        
+        mark.stroke = Drawing.new('Quad')
+        mark.stroke.Filled = false
+        mark.stroke.Thickness = 2
+        mark.stroke.ZIndex = 302
+    else
+        mark.main = Drawing.new('Circle')
+        mark.main.Filled = true
+        mark.main.NumSides = 20
+        mark.main.ZIndex = 303
+        
+        mark.stroke = Drawing.new('Circle')
+        mark.stroke.Filled = false
+        mark.stroke.NumSides = 20
+        mark.stroke.ZIndex = 302
+    end
+    mark.main.Color = RADAR_THEME.NPC_Marker
+    mark.stroke.Color = RADAR_THEME.NPC_Marker
+    
+    table.insert(drawObjects, mark.main)
+    table.insert(drawObjects, mark.stroke)
+    return mark
+end
+
+scriptCns.mouseHover = inputService.InputChanged:Connect(function(input)
+    if input.UserInputType.Name == 'MouseMovement' or input.UserInputType.Name == 'Touch' then
+        local checkPos = (input.UserInputType.Name == 'Touch') and newV2(input.Position.X, input.Position.Y) or inputService:GetMouseLocation()
+        if (checkPos - radarPosition).Magnitude < RADAR_RADIUS then
+            local closestDist = 15
+            hoverNPCName = nil
+            for npc, centerPos in pairs(currentNPCMarkersCenter) do
+                local dist = (checkPos - centerPos).Magnitude
+                if dist < closestDist then
+                    closestDist = dist
+                    hoverNPCName = npc.Name
+                end
+            end
+            if not hoverNPCName then radarObjects.hoverText.Visible = false end
+        else
+            hoverNPCName = nil
+            radarObjects.hoverText.Visible = false
+        end
+    end
+end)
+
+--- TỐI ƯU HÓA: Quét NPC ngầm (Background thread) chạy mỗi 0.5 giây tránh lag ---
+local activeNPCs = {}
+task.spawn(function()
+    while task.wait(0.5) do
+        if not clientPlayer then break end
+        local myChar = clientPlayer.Character
+        local tempNPCs = {}
+        
+        local success, err = pcall(function()
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("Model") and obj ~= myChar and not players:GetPlayerFromCharacter(obj) then
+                    local hrp = obj:FindFirstChild("HumanoidRootPart")
+                    local hum = obj:FindFirstChildOfClass("Humanoid")
+                    if hrp and (not hum or hum.Health > 0) then
+                        tempNPCs[obj] = hrp
+                    end
+                end
+            end
+        end)
+        
+        if success then
+            activeNPCs = tempNPCs
+        end
+    end
+end)
+
+--- MAIN RADAR LOOP ---
+local function cartToPolar(x, y) return math.sqrt(x^2 + y^2), math.atan2(y, x) end
+local function polarToCart(r, t) return r * mathCos(t), r * mathSin(t) end
+
+local finalLookVec = Vector3.zero
+local textOffset = newV2(0, 5)
+
+scriptCns.radarLoop = runService.Heartbeat:Connect(function(dt)
+    if not clientRoot then return end
+    
+    local camAngle = 0
+    if RADAR_ROTATION then
+        local camLook = clientCamera.CFrame.LookVector
+        local fixedLook = newV3(camLook.X, 0, camLook.Z).Unit
+        finalLookVec = SMOOTH_ROT and finalLookVec:Lerp(fixedLook, 1 - mathExp(-SMOOTH_ROT_AMNT * dt)) or fixedLook
+        camAngle = math.atan2(finalLookVec.X, finalLookVec.Z)
+    end
+    
+    -- Hệ trục điều hướng la bàn Đông Tây Nam Bắc (ĐÃ SỬA CHUẨN KHÔNG BỊ NGƯỢC)
+    if RADAR_LINES then
+        -- Thay đổi từ -camAngle thành camAngle để đảo ngược góc xoay sai
+        local cosA, sinA = mathCos(camAngle), mathSin(camAngle)
+        
+        -- Công thức mới đồng bộ chính xác với hệ tọa độ Drawing 2D
+        local posN = radarPosition + newV2(-sinA, cosA) * RADAR_RADIUS
+        local posS = radarPosition + newV2(sinA, -cosA) * RADAR_RADIUS
+        local posE = radarPosition + newV2(-cosA, -sinA) * RADAR_RADIUS
+        local posW = radarPosition + newV2(cosA, sinA) * RADAR_RADIUS
+        
+        radarObjects.verticalLine.From = posN;   radarObjects.verticalLine.To = posS
+        radarObjects.horizontalLine.From = posW; radarObjects.horizontalLine.To = posE
+        
+        if CARDINAL_DISPLAY then
+            radarObjects.directionN.Position = posN - newV2(0, 16)
+            radarObjects.directionS.Position = posS + newV2(0, 4)
+            radarObjects.directionE.Position = posE + newV2(8, -7)
+            radarObjects.directionW.Position = posW - newV2(12, 7)
+        end
+    end
+
+    
+    if USE_QUADS then
+        local pLook = clientRoot.CFrame.LookVector
+        local rotAngle = (math.atan2(pLook.X, pLook.Z) - camAngle) - math.rad(90)
+        local c, s = mathCos(rotAngle), mathSin(rotAngle)
+        local function rotQ(p) return radarPosition + newV2((p.X * s) - (p.Y * c), (p.X * c) + (p.Y * s)) end
+        radarObjects.localMark.PointA = rotQ(quadPointA); radarObjects.localMark.PointB = rotQ(quadPointB); radarObjects.localMark.PointC = rotQ(quadPointC); radarObjects.localMark.PointD = rotQ(quadPointD)
+        radarObjects.localMarkStroke.PointA = radarObjects.localMark.PointA; radarObjects.localMarkStroke.PointB = radarObjects.localMark.PointB; radarObjects.localMarkStroke.PointC = radarObjects.localMark.PointC; radarObjects.localMarkStroke.PointD = radarObjects.localMark.PointD
+    else
+        radarObjects.localMark.Position = radarPosition; radarObjects.localMarkStroke.Position = radarPosition
+    end
+    
+    -- Xóa các Marker của NPC không còn tồn tại
+    table.clear(currentNPCMarkersCenter)
+    for npc, mark in pairs(npcMarkers) do
+        if not activeNPCs[npc] or not activeNPCs[npc].Parent then
+            removeDrawObj(mark.main)
+            removeDrawObj(mark.stroke)
+            npcMarkers[npc] = nil
+        end
+    end
+    
+    -- Cập nhật Marker NPC thời gian thực
+    for npc, hrp in pairs(activeNPCs) do
+        if not hrp.Parent then continue end
+        local mark = npcMarkers[npc]
+        if not mark then
+            mark = createNpcMarker()
+            npcMarkers[npc] = mark
+        end
+        
+        local posDelta = hrp.Position - clientRoot.Position
+        local radius, angle = cartToPolar(posDelta.X, posDelta.Z)
+        local fixedRadius = radius * RADAR_SCALE
+        
+        if fixedRadius > RADAR_RADIUS then
+            if DISPLAY_OFFSCREEN then
+                mark.main.Transparency = OFFSCREEN_TRANSPARENCY; mark.stroke.Transparency = OFFSCREEN_TRANSPARENCY
+                mark.main.Visible = true; mark.stroke.Visible = true
+            else
+                mark.main.Visible = false; mark.stroke.Visible = false
+                continue
+            end
+        else
+            mark.main.Visible = true; mark.stroke.Visible = true
+            mark.main.Transparency = 1; mark.stroke.Transparency = 1
+        end
+        
+        radius = math.clamp(fixedRadius, 0, RADAR_RADIUS)
+        angle += (camAngle + math.rad(180))
+        local x, y = polarToCart(radius, angle)
+        local finalPos = radarPosition + newV2(x, y)
+        currentNPCMarkersCenter[npc] = finalPos -- Lưu vị trí chính xác phục vụ hover
+        
+        if USE_QUADS then
+            local rotAngle = (math.atan2(hrp.CFrame.LookVector.X, hrp.CFrame.LookVector.Z)) - math.rad(90) - camAngle
+            local c, s = mathCos(rotAngle), mathSin(rotAngle)
+            local fA, fB, fC, fD = quadPointA, quadPointB, quadPointC, quadPointD
+            
+            if MARKER_FALLOFF then
+                local falloff = math.clamp(MARKER_FALLOFF_AMNT / posDelta.Magnitude, 0.75, 1)
+                fA *= falloff; fB *= falloff; fC *= falloff; fD *= falloff
+            end
+            
+            mark.main.PointA = finalPos + newV2((fA.X * s) - (fA.Y * c), (fA.X * c) + (fA.Y * s))
+            mark.main.PointB = finalPos + newV2((fB.X * s) - (fB.Y * c), (fB.X * c) + (fB.Y * s))
+            mark.main.PointC = finalPos + newV2((fC.X * s) - (fC.Y * c), (fC.X * c) + (fC.Y * s))
+            mark.main.PointD = finalPos + newV2((fD.X * s) - (fD.Y * c), (fD.X * c) + (fD.Y * s))
+            
+            mark.stroke.PointA = mark.main.PointA; mark.stroke.PointB = mark.main.PointB; mark.stroke.PointC = mark.main.PointC; mark.stroke.PointD = mark.main.PointD
+        else
+            local dotRadius = markerScale * 3
+            if MARKER_FALLOFF then dotRadius *= math.clamp(MARKER_FALLOFF_AMNT / posDelta.Magnitude, 0.75, 1) end
+            mark.main.Radius = dotRadius; mark.main.Position = finalPos
+            mark.stroke.Radius = dotRadius; mark.stroke.Position = finalPos
+        end
+        
+        if hoverNPCName and hoverNPCName == npc.Name then
+            radarObjects.hoverText.Text = string.format('%s\n[%d studs]', npc.Name, posDelta.Magnitude)
+            radarObjects.hoverText.Visible = true
+            radarObjects.hoverText.Position = radarObjects.hoverText.Position:Lerp(finalPos + textOffset, 1 - mathExp(-30 * dt))
+        end
+    end
+end)
+
+--- Giải phóng bộ nhớ hoàn toàn ---
+_G.RadarKill = function()
+    clientPlayer = nil
+    for _, con in pairs(scriptCns) do con:Disconnect() end
+    for _, obj in ipairs(drawObjects) do pcall(function() obj:Remove() end) end
+    for _, mark in pairs(npcMarkers) do 
+        pcall(function() mark.main:Remove() end)
+        pcall(function() mark.stroke:Remove() end)
+    end
+    for _, l in ipairs(radarLines) do pcall(function() l:Remove() end) end
+    table.clear(drawObjects)
+    table.clear(npcMarkers)
+    table.clear(radarLines)
+    table.clear(activeNPCs)
+    table.clear(currentNPCMarkersCenter)
+    _G.RadarKill = nil
+end
+	

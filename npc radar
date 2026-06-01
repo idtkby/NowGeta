@@ -11,7 +11,7 @@ if ( not game:IsLoaded() ) then
 end
 
 --- Settings ---
-local existingSettings = _G.RadarSettingsc or {}
+local existingSettings = _G.RadarSettings or {}
 local settings = {
     RADAR_LINES = true;
     RADAR_LINE_DISTANCE = 50;
@@ -409,28 +409,31 @@ scriptCns.radarLoop = runService.Heartbeat:Connect(function(dt)
         camAngle = math.atan2(finalLookVec.X, finalLookVec.Z)
     end
     
-    -- Hệ trục điều hướng la bàn Đông Tây Nam Bắc (ĐÃ SỬA CHUẨN KHÔNG BỊ NGƯỢC)
-    if RADAR_LINES then
-        -- Thay đổi từ -camAngle thành camAngle để đảo ngược góc xoay sai
-        local cosA, sinA = mathCos(camAngle), mathSin(camAngle)
-        
-        -- Công thức mới đồng bộ chính xác với hệ tọa độ Drawing 2D
-        local posN = radarPosition + newV2(-sinA, cosA) * RADAR_RADIUS
-        local posS = radarPosition + newV2(sinA, -cosA) * RADAR_RADIUS
-        local posE = radarPosition + newV2(-cosA, -sinA) * RADAR_RADIUS
-        local posW = radarPosition + newV2(cosA, sinA) * RADAR_RADIUS
-        
-        radarObjects.verticalLine.From = posN;   radarObjects.verticalLine.To = posS
-        radarObjects.horizontalLine.From = posW; radarObjects.horizontalLine.To = posE
-        
-        if CARDINAL_DISPLAY then
-            radarObjects.directionN.Position = posN - newV2(0, 16)
-            radarObjects.directionS.Position = posS + newV2(0, 4)
-            radarObjects.directionE.Position = posE + newV2(8, -7)
-            radarObjects.directionW.Position = posW - newV2(12, 7)
+        -- Vertical and horizontal lines (Fixed Cardinal Math)
+        do 
+            if ( RADAR_LINES ) then
+                local cosA, sinA = mathCos(-camAngle), mathSin(-camAngle)
+                local posN = radarPosition + newV2(sinA, -cosA) * RADAR_RADIUS
+                local posS = radarPosition + newV2(-sinA, cosA) * RADAR_RADIUS
+                local posE = radarPosition + newV2(cosA, sinA) * RADAR_RADIUS
+                local posW = radarPosition + newV2(-cosA, -sinA) * RADAR_RADIUS
+                
+                radarObjects.verticalLine.From = posN;   radarObjects.verticalLine.To = posS
+                radarObjects.horizontalLine.From = posW; radarObjects.horizontalLine.To = posE
+                
+                if CARDINAL_DISPLAY then
+                    -- Khoảng cách từ chữ đến rìa đường tròn (Thay đổi số 12 nếu muốn chữ xa/gần hơn)
+                    local padding = 0
+                    
+                    -- Nhân khoảng cách trực tiếp với Vector xoay và trừ đi bán kính Font chữ để căn giữa chữ Y
+                    radarObjects.directionN.Position = radarPosition + newV2(sinA, -cosA) * (RADAR_RADIUS + padding) - newV2(0, 8)
+                    radarObjects.directionS.Position = radarPosition + newV2(-sinA, cosA) * (RADAR_RADIUS + padding) - newV2(0, 7)
+                    radarObjects.directionE.Position = radarPosition + newV2(cosA, sinA) * (RADAR_RADIUS + padding) - newV2(0, 7)
+                    radarObjects.directionW.Position = radarPosition + newV2(-cosA, -sinA) * (RADAR_RADIUS + padding) - newV2(0, 7)
+                end
+            end
         end
-    end
-
+        
     
     if USE_QUADS then
         local pLook = clientRoot.CFrame.LookVector

@@ -43,7 +43,7 @@ local settings = {
     VISIBLITY_CHECK = false; 
     
     --- Theme
-    RADAR_THEME2 = {
+    RADAR_THEME = {
         Outline = Color3.fromRGB(35, 35, 45); 
         Background = Color3.fromRGB(25, 25, 35); 
         DragHandle = Color3.fromRGB(50, 50, 255); 

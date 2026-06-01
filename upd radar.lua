@@ -222,7 +222,10 @@ do
 end
 
 --- Player managers --- 
-if ( workspace.StreamingEnabled ) then USE_FALLBACK = true end
+if ( workspace.StreamingEnabled ) then 
+    USE_FALLBACK = true 
+    warn("Radar: StreamingEnabled detected, using robust tracking.")
+end
 
 local playerManagers = {}
 if ( game.PlaceId == 292439477 ) then 
@@ -244,6 +247,8 @@ else
     end
     
     local function readyPlayer(thisPlayer) 
+        if playerManagers[thisPlayer.Name] then return end -- Tránh add trùng
+        
         local thisName = thisPlayer.Name
         local thisManager = {}
         local thisPlayerCns = {}
@@ -281,20 +286,46 @@ else
         
         thisManager.Team = thisPlayer.Team; thisManager.Player = thisPlayer; thisManager.Name = thisName; thisManager.DisplayName = thisPlayer.DisplayName  
         thisManager.Friended = clientPlayer:IsFriendsWith(thisPlayer.UserId)
-        thisManager.GetCFrame = function() 
-            local thisRoot = thisManager.RootPart
-            local cframe  
-            if ( thisRoot ) then cframe = thisRoot.CFrame elseif ( USE_FALLBACK and thisManager.Character ) then cframe = thisManager.Character:GetPivot() end
-            return cframe 
+        
+        -- Hàm định vị cải tiến của bạn
+        thisManager.GetCFrame = function()
+            local root = thisManager.RootPart
+            if root and root.Parent then return root.CFrame end
+
+            local char = thisManager.Player.Character
+            if char and char.Parent then
+                local newRoot = char:FindFirstChild("HumanoidRootPart")
+                if newRoot then
+                    thisManager.RootPart = newRoot
+                    return newRoot.CFrame
+                end
+                return char:GetPivot()
+            end
+            return nil
         end
+        
         thisManager.Cns = thisPlayerCns 
         playerManagers[thisName] = thisManager
     end
     
+    -- Khởi tạo ban đầu
     for _, player in ipairs(playerService:GetPlayers()) do if ( player ~= clientPlayer ) then readyPlayer(player) end end
     scriptCns.pm_playerAdd = playerService.PlayerAdded:Connect(readyPlayer)
     scriptCns.pm_playerRemove = playerService.PlayerRemoving:Connect(removePlayer)
+
+    -- Vòng lặp quét dự phòng (Fix lỗi người chơi mới vào ko hiện)
+    task.spawn(function()
+        while true do
+            task.wait(3)
+            for _, player in ipairs(playerService:GetPlayers()) do
+                if (player ~= clientPlayer and not playerManagers[player.Name]) then
+                    readyPlayer(player)
+                end
+            end
+        end
+    end)
 end
+
 
 --- Radar UI --- 
 local radarLines = {}

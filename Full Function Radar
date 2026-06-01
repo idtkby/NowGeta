@@ -1,8 +1,7 @@
---- Drawing Player Radar
---- Made by topit
---- Modified (v1.3.4): Added Mobile Drag, Dynamic Sizing, Custom Start Pos, fixed Cardinal Math
---- Fix Bug: Hoàn toàn tương thích StreamingEnabled, sửa lỗi không nhận diện lại khi Respawn/Reset
-local scriptver = 'v1.3.4-Player_Fixed'
+,--- Drawing Unified Player & NPC Radar
+--- Base code by topit | Fully Merged & Optimized v1.4.0
+--- Khắc phục hoàn toàn lỗi đơ vị trí, mất dấu khi mục tiêu văng ra ngoài khu vực StreamingEnabled
+local scriptver = 'v1.4.0-Unified_Ultimate'
 
 if ( _G.RadarKill ) then
     _G.RadarKill()
@@ -13,26 +12,30 @@ if ( not game:IsLoaded() ) then
 end
 
 --- Settings ---
-local existingSettings = _G.RadarSettings2 or {}
+local existingSettings = _G.RadarSettings3 or {}
 local settings = {
-    --- Radar settings
+    --- Mục tiêu định vị ---
+    TRACK_PLAYERS = true;                     -- Bật/Tắt định vị Người chơi (Players)
+    TRACK_NPCS = true;                        -- Bật/Tắt định vị thực thể máy (NPCs)
+
+    --- Radar settings ---
     RADAR_LINES = true; 
     RADAR_LINE_DISTANCE = 50; 
     RADAR_SCALE = 1; 
     RADAR_RADIUS = 125; 
-    RADAR_START_POS = Vector2.new(300, 250); -- Tọa độ hiển thị mặc định của tâm Radar khi chạy script
+    RADAR_START_POS = Vector2.new(300, 250); -- Tọa độ hiển thị mặc định của tâm Radar
     RADAR_ROTATION = true; 
     SMOOTH_ROT = true; 
     SMOOTH_ROT_AMNT = 30; 
     CARDINAL_DISPLAY = true; 
     
-    --- Path Recording Settings (Chức năng ghi bản đồ đường đi) ---
-    RECORD_PATH = true;                      -- Bật/Tắt chức năng vẽ lại đường đi cũ
+    --- Path Recording Settings (Bản đồ đường đi của bạn) ---
+    RECORD_PATH = true;                      -- Bật/Tắt chức năng vẽ lại đường đi cũ của bản thân
     PATH_DISTANCE = 8;                       -- Khoảng cách (studs) giữa mỗi dấu chấm đường đi
     PATH_MAX_POINTS = 200;                   -- Giới hạn số điểm tối đa để bảo vệ FPS
-    PATH_COLOR = Color3.fromRGB(0, 225, 255);-- Màu của đường đi cũ trên Radar (Xanh Cyan)
+    PATH_COLOR = Color3.fromRGB(0, 225, 255);-- Màu của đường đi cũ (Xanh Cyan)
     
-    --- Marker settings
+    --- Marker settings ---
     DISPLAY_OFFSCREEN = true; 
     DISPLAY_TEAMMATES = true; 
     DISPLAY_TEAM_COLORS = true; 
@@ -49,7 +52,7 @@ local settings = {
     USE_TEAM_COLORS = false; 
     VISIBLITY_CHECK = false; 
     
-    --- Theme
+    --- Theme Màu Sắc ---
     RADAR_THEME = {
         Outline = Color3.fromRGB(35, 35, 45); 
         Background = Color3.fromRGB(25, 25, 35); 
@@ -57,9 +60,11 @@ local settings = {
         Cardinal_Lines = Color3.fromRGB(110, 110, 120); 
         Distance_Lines = Color3.fromRGB(65, 65, 75); 
         Generic_Marker = Color3.fromRGB(255, 25, 115); 
-        Local_Marker = Color3.fromRGB(115, 25, 255); 
         Team_Marker = Color3.fromRGB(25, 115, 255); 
         Friend_Marker = Color3.fromRGB(25, 255, 115); 
+        
+        Local_Marker = Color3.fromRGB(115, 25, 255); -- Tím gốc của LocalPlayer
+        NPC_Marker = Color3.fromRGB(205, 115, 255);  -- Màu giống LocalPlayer nhưng SÁNG HƠN (Neon Violet)
     };
 }
 
@@ -67,6 +72,8 @@ for k, v in pairs(existingSettings) do
     if ( v ~= nil ) then settings[k] = v end
 end
 
+local TRACK_PLAYERS = settings.TRACK_PLAYERS
+local TRACK_NPCS = settings.TRACK_NPCS
 local RADAR_LINES = settings.RADAR_LINES
 local RADAR_LINE_DISTANCE = settings.RADAR_LINE_DISTANCE
 local RADAR_SCALE = settings.RADAR_SCALE
@@ -75,7 +82,6 @@ local RADAR_ROTATION = settings.RADAR_ROTATION
 local SMOOTH_ROT = settings.SMOOTH_ROT
 local SMOOTH_ROT_AMNT = settings.SMOOTH_ROT_AMNT
 local CARDINAL_DISPLAY = settings.CARDINAL_DISPLAY
-
 local DISPLAY_OFFSCREEN = settings.DISPLAY_OFFSCREEN
 local DISPLAY_TEAMMATES = settings.DISPLAY_TEAMMATES
 local DISPLAY_TEAM_COLORS = settings.DISPLAY_TEAM_COLORS
@@ -109,6 +115,7 @@ local mathExp = math.exp
 
 local scriptCns = {}
 local radarObjects = {}
+local drawObjects = {}
 
 local markerScale = math.clamp(RADAR_SCALE, MARKER_SCALE_MIN, MARKER_SCALE_MAX) * MARKER_SCALE_BASE
 local scaleVec = newV2(markerScale, markerScale)
@@ -117,8 +124,7 @@ local quadPointB = newV2(4, -5)  * scaleVec
 local quadPointC = newV2(0, -3)  * scaleVec
 local quadPointD = newV2(-4, -5) * scaleVec
 
---- Drawing setup ---
-local drawObjects = {}
+--- Drawing Setup ---
 local function newDrawObj(objectClass, objectProperties)
     local obj = Drawing.new(objectClass)
     table.insert(drawObjects, obj)
@@ -126,42 +132,38 @@ local function newDrawObj(objectClass, objectProperties)
     return obj
 end
 
-local tweenExp, tweenQuad do
-    local function numLerp(a, b, c) return (1 - c) * a + c * b end
-    local tweenTypes = { Vector2 = Vector2.zero.Lerp, number = numLerp, Color3 = Color3.new().Lerp }
-    
-    function tweenExp(obj, property, dest, duration) 
-        task.spawn(function()
-            local initialVal = obj[property]
-            local tweenTime = 0
-            local lerpFunc = tweenTypes[typeof(dest)]
-            while ( tweenTime < duration ) do 
-                obj[property] = lerpFunc(initialVal, dest, 1 - math.pow(2, -10 * tweenTime / duration))
-                tweenTime += task.wait()
+local function removeDrawObj(obj)
+    local idx = table.find(drawObjects, obj)
+    if idx then table.remove(drawObjects, idx) end
+    pcall(function() obj:Remove() end)
+end
+
+local function tweenExp(obj, property, dest, duration) 
+    task.spawn(function()
+        local initialVal = obj[property]
+        local tweenTime = 0
+        while ( tweenTime < duration ) do 
+            local alpha = 1 - math.pow(2, -10 * tweenTime / duration)
+            if type(initialVal) == "number" then
+                obj[property] = initialVal + (dest - initialVal) * alpha
+            else
+                obj[property] = initialVal:Lerp(dest, alpha)
             end
-            obj[property] = dest
-        end)
-    end
+            tweenTime += task.wait()
+        end
+        obj[property] = dest
+    end)
 end
 
-local errMessage = 'Failed to get the %s instance. Your game may be unsupported, or simply has not finished loading.'
 local clientPlayer = playerService.LocalPlayer
-
-if ( not clientPlayer ) then
-    for _, con in pairs(scriptCns) do con:Disconnect() end
-    return messagebox(string.format(errMessage, 'LocalPlayer'), 'Player Radar', 0)
-end
+if ( not clientPlayer ) then return end
 
 local clientRoot do 
     scriptCns.charRespawn = clientPlayer.CharacterAdded:Connect(function(newChar) 
         clientRoot = newChar:WaitForChild('HumanoidRootPart', 10)
-        if ( clientRoot ) then
-            radarObjects.loadText.Visible = false 
-            radarObjects.loadOverlay.Visible = false  
-        else
-            radarObjects.loadText.Visible = true 
-            radarObjects.loadOverlay.Visible = true  
-        end
+        local waiting = (clientRoot == nil)
+        radarObjects.loadText.Visible = waiting 
+        radarObjects.loadOverlay.Visible = waiting  
     end)
     if ( clientPlayer.Character ) then clientRoot = clientPlayer.Character:FindFirstChild('HumanoidRootPart') end
 end
@@ -174,95 +176,52 @@ end)
 local clientTeam = clientPlayer.Team
 scriptCns.teamUpdate = clientPlayer:GetPropertyChangedSignal('Team'):Connect(function() clientTeam = clientPlayer.Team end)
 
---- PlaceID Check & Notification --- 
+--- Notification System --- 
 do
-    local thisId = game.PlaceId
-    local retardedGames = {292439477; 3233893879; 8130299583; 9570110925;}
-    local gameNotes = {[379614936] = 'This game is known to fuck up the radar - waiting a round should fix'; [2474168535] = 'Players that are lassoed don\'t appear on the radar properly';}
-    
     local halfWidth = clientCamera.ViewportSize.X / 2
     local notif = Drawing.new('Text')
+    table.insert(drawObjects, notif)
     notif.Center = true; notif.Color = Color3.fromRGB(255, 255, 255); notif.Font = Drawing.Fonts.UI; notif.Outline = true
-    notif.Position = newV2(halfWidth, 200); notif.Size = 18; notif.Transparency = 0; notif.Visible = true; notif.ZIndex = 500 
+    notif.Position = newV2(halfWidth, 200); notif.Size = 18; notif.Visible = true; notif.ZIndex = 500 
+    notif.Text = ('Loaded Unified Radar %s\n[PC] [-/+] Zoom | [[ / ]] Co giãn Kích thước\n[PC & MOBILE] Chạm giữ kéo thả tâm Radar để di chuyển!'):format(scriptver)
     
-    if ( table.find(retardedGames, thisId) ) then
-        notif.Text = 'Games with custom character systems\naren\'t supported. Sorry!'
-        tweenExp(notif, 'Transparency', 1, 0.25)
-        tweenExp(notif, 'Position', newV2(halfWidth, 150), 0.25)
-        task.wait(5)
-        for _, con in pairs(scriptCns) do con:Disconnect() end
-        notif:Remove()
-        return
-    else
-        notif.Text = ('Loaded Drawing Radar %s\n[PC] [-/+] Tăng giảm Zoom | [[ / ]] Co giãn Radar\n[PC & MOBILE] Kéo thả tâm Radar để di chuyển!'):format(scriptver) 
-        local gameWarning = gameNotes[thisId]
-        if ( gameWarning ) then notif.Text = notif.Text .. string.format('\n\nGame warning: %s', gameWarning) end
-        
-        task.spawn(function()
-            tweenExp(notif, 'Transparency', 1, 0.25)
-            tweenExp(notif, 'Position', newV2(halfWidth, 150), 0.25)
-            task.wait(gameWarning and 10 or 7)
-            tweenExp(notif, 'Position', newV2(halfWidth, 200), 0.25)
-            tweenExp(notif, 'Transparency', 0, 0.25)
-            task.wait(0.5)
-            if ( workspace.StreamingEnabled ) then
-                notif.Text = 'StreamingEnabled detected! Fallback Tracking Active.'
-                tweenExp(notif, 'Transparency', 1, 0.25); tweenExp(notif, 'Position', newV2(halfWidth, 150), 0.25); task.wait(5)
-                tweenExp(notif, 'Position', newV2(halfWidth, 200), 0.25); tweenExp(notif, 'Transparency', 0, 0.25); task.wait(1)
-            end
-            notif:Remove()
-        end)
-    end
+    task.delay(7, function() 
+        tweenExp(notif, 'Transparency', 0, 0.5) 
+        task.wait(0.5) 
+        removeDrawObj(notif) 
+    end)
 end
 
---- Player managers (SỬA ĐỔI ĐỂ TƯƠNG THÍCH STREAMINGENABLED) --- 
 if ( workspace.StreamingEnabled ) then 
     USE_FALLBACK = true 
-    warn("Radar: StreamingEnabled detected, using robust tracking.")
+    warn("Radar: StreamingEnabled detected, robust fallback systems armed.")
 end
 
+--- PLAYER MANAGER (Xử lý Người chơi) --- 
 local playerManagers = {}
-do
-    local function removePlayer(player) 
-        local thisName = player.Name
-        local thisManager = playerManagers[thisName]
-        if ( not thisManager ) then return end
-        local thisPlayerCns = thisManager.Cns
-        if ( thisManager.onLeave ) then thisManager.onLeave() end
-        for _, con in pairs(thisPlayerCns) do con:Disconnect() end
-        thisManager.onDeath = nil; thisManager.onLeave = nil; thisManager.onRemoval = nil; thisManager.onRespawn = nil; thisManager.onTeamChange = nil; thisManager.Player = nil
-        playerManagers[thisName] = nil 
-    end
-    
+if TRACK_PLAYERS then
     local function readyPlayer(thisPlayer) 
         if playerManagers[thisPlayer.Name] then return end 
-        
         local thisName = thisPlayer.Name
-        local thisManager = {}
-        local thisPlayerCns = {}
+        local thisManager = { Cns = {} }
         
         local function deathFunc() if ( thisManager.onDeath ) then thisManager.onDeath() end end
 
-        -- Sửa lại logic lắng nghe Character để luôn gán biến chính xác dưới StreamingEnabled
-        thisPlayerCns['chr-add'] = thisPlayer.CharacterAdded:Connect(function(newChar)
+        thisManager.Cns['chr-add'] = thisPlayer.CharacterAdded:Connect(function(newChar)
             thisManager.Character = newChar
-            local Humanoid = newChar:WaitForChild('Humanoid', 10)
-            local RootPart = newChar:WaitForChild('HumanoidRootPart', 10)
-            
-            thisManager.RootPart = RootPart
-            thisManager.Humanoid = Humanoid
-            
+            thisManager.Humanoid = newChar:WaitForChild('Humanoid', 10)
+            thisManager.RootPart = newChar:WaitForChild('HumanoidRootPart', 10)
             if ( thisManager.onRespawn ) then thisManager.onRespawn() end
-            if ( thisPlayerCns['chr-die'] ) then thisPlayerCns['chr-die']:Disconnect() end
-            if ( Humanoid ) then thisPlayerCns['chr-die'] = Humanoid.Died:Connect(deathFunc) end
+            if ( thisManager.Cns['chr-die'] ) then thisManager.Cns['chr-die']:Disconnect() end
+            if ( thisManager.Humanoid ) then thisManager.Cns['chr-die'] = thisManager.Humanoid.Died:Connect(deathFunc) end
         end)
 
-        thisPlayerCns['chr-remove'] = thisPlayer.CharacterRemoving:Connect(function()
+        thisManager.Cns['chr-remove'] = thisPlayer.CharacterRemoving:Connect(function()
             if ( thisManager.onRemoval ) then thisManager.onRemoval() end
             thisManager.Character = nil; thisManager.RootPart = nil; thisManager.Humanoid = nil 
         end)
         
-        thisPlayerCns['team'] = thisPlayer:GetPropertyChangedSignal('Team'):Connect(function()
+        thisManager.Cns['team'] = thisPlayer:GetPropertyChangedSignal('Team'):Connect(function()
             thisManager.Team = thisPlayer.Team
             if ( thisManager.onTeamChange ) then thisManager.onTeamChange(thisManager.Team) end
         end)
@@ -272,50 +231,49 @@ do
             thisManager.Character = Character
             thisManager.Humanoid = Character:FindFirstChildOfClass('Humanoid')
             thisManager.RootPart = Character:FindFirstChild('HumanoidRootPart')
-            if ( thisManager.Humanoid ) then thisPlayerCns['chr-die'] = thisManager.Humanoid.Died:Connect(deathFunc) end
+            if ( thisManager.Humanoid ) then thisManager.Cns['chr-die'] = thisManager.Humanoid.Died:Connect(deathFunc) end
         end
         
         thisManager.Team = thisPlayer.Team; thisManager.Player = thisPlayer; thisManager.Name = thisName; thisManager.DisplayName = thisPlayer.DisplayName  
         thisManager.Friended = clientPlayer:IsFriendsWith(thisPlayer.UserId)
         
-        -- Hàm lấy CFrame tối ưu, liên tục tự động quét lại nếu RootPart bị mất do Stream-out
         thisManager.GetCFrame = function()
             local root = thisManager.RootPart
             if root and root.Parent then return root.CFrame end
-
             local char = thisPlayer.Character or thisManager.Character
             if char and char.Parent then
                 local newRoot = char:FindFirstChild("HumanoidRootPart")
-                if newRoot then
-                    thisManager.RootPart = newRoot
-                    return newRoot.CFrame
-                end
-                local newHumanoid = char:FindFirstChildOfClass("Humanoid")
-                if newHumanoid then thisManager.Humanoid = newHumanoid end
+                if newRoot then thisManager.RootPart = newRoot; return newRoot.CFrame end
                 return char:GetPivot()
             end
             return nil
         end
         
-        thisManager.Cns = thisPlayerCns 
         playerManagers[thisName] = thisManager
     end
     
+    local function removePlayer(player) 
+        local thisName = player.Name
+        local thisManager = playerManagers[thisName]
+        if ( not thisManager ) then return end
+        if ( thisManager.onLeave ) then thisManager.onLeave() end
+        for _, con in pairs(thisManager.Cns) do con:Disconnect() end
+        playerManagers[thisName] = nil 
+    end
+
     for _, player in ipairs(playerService:GetPlayers()) do if ( player ~= clientPlayer ) then readyPlayer(player) end end
     scriptCns.pm_playerAdd = playerService.PlayerAdded:Connect(readyPlayer)
     scriptCns.pm_playerRemove = playerService.PlayerRemoving:Connect(removePlayer)
 
-    -- Vòng lặp tối ưu quét bắt buộc: Liên tục gán lại thuộc tính nhân vật bị mất khi Stream-in/out hoặc hồi sinh lỗi
     task.spawn(function()
         while true do
-            task.wait(1.5) -- Tăng tốc độ quét lên 1.5 giây để cập nhật nhanh hơn
+            task.wait(1.5)
             for _, player in ipairs(playerService:GetPlayers()) do
                 if player ~= clientPlayer then
                     local manager = playerManagers[player.Name]
                     if not manager then
                         readyPlayer(player)
                     else
-                        -- Nếu người chơi có Character nhưng biến quản lý bị trống (do stream lỗi), ép buộc gán lại ngay
                         if player.Character and (not manager.Character or not manager.RootPart) then
                             manager.Character = player.Character
                             manager.RootPart = player.Character:FindFirstChild("HumanoidRootPart")
@@ -329,16 +287,41 @@ do
     end)
 end
 
+--- NPC MANAGER (Xử lý NPC ngầm tránh Lag) ---
+local activeNPCs = {}
+if TRACK_NPCS then
+    task.spawn(function()
+        while true do
+            if not clientPlayer then break end
+            local myChar = clientPlayer.Character
+            local tempNPCs = {}
+            
+            pcall(function()
+                for _, obj in ipairs(workspace:GetDescendants()) do
+                    if obj:IsA("Model") and obj ~= myChar and not playerService:GetPlayerFromCharacter(obj) then
+                        local hrp = obj:FindFirstChild("HumanoidRootPart")
+                        local hum = obj:FindFirstChildOfClass("Humanoid")
+                        if hrp and (not hum or hum.Health > 0) then
+                            tempNPCs[obj] = hrp
+                        end
+                    end
+                end
+            end)
+            activeNPCs = tempNPCs
+            task.wait(0.5)
+        end
+    end)
+end
 
---- Radar UI --- 
+--- Radar Base UI Setup ---
 local radarLines = {}
 local radarPosition = settings.RADAR_START_POS or newV2(300, 250)
 
 radarObjects.main = newDrawObj('Circle', {Color = RADAR_THEME.Background; Position = radarPosition; Filled = true; Visible = true; NumSides = 40; Radius = RADAR_RADIUS; ZIndex = 300;})
-radarObjects.outline = newDrawObj('Circle', {Color = RADAR_THEME.Outline; Position = radarPosition; Filled = false; Visible = true; NumSides = 40; Thickness = 10; Radius = RADAR_RADIUS; ZIndex = 299;})
+radarObjects.outline = newDrawObj('Circle', {Color = RADAR_THEME.Outline; Position = radarPosition; Filled = false; Visible = true; NumSides = 40; Thickness = 6; Radius = RADAR_RADIUS; ZIndex = 299;})
 radarObjects.dragHandle = newDrawObj('Circle', {Color = RADAR_THEME.DragHandle; Position = radarPosition; Filled = false; Visible = false; NumSides = 40; Radius = RADAR_RADIUS; Thickness = 3; ZIndex = 325;})
 radarObjects.loadOverlay = newDrawObj('Circle', {Color = Color3.new(0, 0, 0); Filled = true; NumSides = 40; Position = radarPosition; Radius = RADAR_RADIUS; Transparency = 0.5; Visible = clientRoot == nil; ZIndex = 319;})
-radarObjects.loadText = newDrawObj('Text', {Center = true; Color = Color3.fromRGB(255, 255, 255); Font = Drawing.Fonts.UI; Outline = true; Position = radarPosition - newV2(0, 15); Size = 20; Text = 'Waiting for you to spawn in...'; Transparency = 1; Visible = clientRoot == nil; ZIndex = 320;})
+radarObjects.loadText = newDrawObj('Text', {Center = true; Color = Color3.fromRGB(255, 255, 255); Font = Drawing.Fonts.UI; Outline = true; Position = radarPosition - newV2(0, 15); Size = 20; Text = 'Waiting for spawn...'; Visible = clientRoot == nil; ZIndex = 320;})
 radarObjects.zoomText = newDrawObj('Text', {Center = true; Color = Color3.fromRGB(255, 255, 255); Font = Drawing.Fonts.UI; Outline = true; Size = 16; Transparency = 0; Visible = false; ZIndex = 306;})
 radarObjects.hoverText = newDrawObj('Text', {Center = true; Color = Color3.fromRGB(255, 255, 255); Font = Drawing.Fonts.UI; Outline = true; Position = radarPosition; Size = 16; Transparency = 1; Visible = false; ZIndex = 306;})
 
@@ -351,7 +334,7 @@ else
 end
 
 local function updateRadarLines()
-    for _, l in ipairs(radarLines) do l:Remove() end
+    for _, l in ipairs(radarLines) do removeDrawObj(l) end
     radarLines = {}
     if not RADAR_LINES then return end
     local lineCount = math.floor(RADAR_RADIUS / (RADAR_SCALE * RADAR_LINE_DISTANCE))
@@ -378,27 +361,6 @@ if CARDINAL_DISPLAY then
     radarObjects.directionS = newDrawObj('Text', {Center = true; Color = Color3.new(1,1,1); Font = Drawing.Fonts.UI; Outline = true; Size = 14; Text = 'S'; Visible = true; ZIndex = 303;})
     radarObjects.directionW = newDrawObj('Text', {Center = true; Color = Color3.new(1,1,1); Font = Drawing.Fonts.UI; Outline = true; Size = 14; Text = 'W'; Visible = true; ZIndex = 303;})
     radarObjects.directionE = newDrawObj('Text', {Center = true; Color = Color3.new(1,1,1); Font = Drawing.Fonts.UI; Outline = true; Size = 14; Text = 'E'; Visible = true; ZIndex = 303;})
-end
-
-local destroying = false 
-local breadcrumbs = {}
-local breadcrumbVisuals = {}
-local lastRecordedPos = nil
-
-local function killScript()
-    if ( destroying ) then return end 
-    destroying = true
-    for _, con in pairs(scriptCns) do con:Disconnect() end
-    task.wait()
-    for name, manager in pairs(playerManagers) do 
-        for _, con in pairs(manager.Cns) do con:Disconnect() end
-        manager.onDeath = nil; manager.onLeave = nil; manager.onRespawn = nil; manager.onRemoval = nil; manager.onTeamChange = nil; playerManagers[name] = nil 
-    end
-    for _, obj in ipairs(drawObjects) do tweenExp(obj, 'Transparency', 0, 0.5) end
-    task.wait(1)
-    if ( not drawObjects ) then return end
-    for _, obj in ipairs(drawObjects) do obj:Remove() end
-    _G.RadarKill = nil; drawObjects = nil
 end
 
 local function setRadarScale() 
@@ -434,7 +396,7 @@ local function setRadarPosition(newPosition)
     radarObjects.hoverText.Position = newPosition
 end
 
---- Input and drag handling ---
+--- Input and Drag Handling ---
 do
     local radarDragging = false
     local currentTouchInput = nil
@@ -445,7 +407,7 @@ do
         if ( inputType == 'Keyboard' ) then
             local keyCode = io.KeyCode.Name
             if ( keyCode == 'End' ) then
-                killScript() 
+                _G.RadarKill() 
             elseif ( keyCode == 'Equals' ) then
                 radarObjects.zoomText.Position = radarPosition + newV2(0, RADAR_RADIUS + 20)
                 radarObjects.zoomText.Visible = true
@@ -521,44 +483,39 @@ do
     end)
 end
 
---- Player marker setup ---
-local playerMarks = {} do 
+--- Khởi tạo Marker lưu trữ ---
+local playerMarks = {} 
+local npcMarkers = {}
+local currentNPCMarkersCenter = {}
+
+local function createGenericMarker()
+    local mark = {}
+    if USE_QUADS then
+        mark.main = Drawing.new('Quad'); mark.main.Filled = true; mark.main.Thickness = 2; mark.main.Visible = false; mark.main.ZIndex = 303
+        mark.stroke = Drawing.new('Quad'); mark.stroke.Filled = false; mark.stroke.Thickness = 2; mark.stroke.ZIndex = 302
+    else
+        mark.main = Drawing.new('Circle'); mark.main.Filled = true; mark.main.NumSides = 20; mark.main.Radius = markerScale * 3; mark.main.Thickness = 2; mark.main.Visible = false; mark.main.ZIndex = 303
+        mark.stroke = Drawing.new('Circle'); mark.stroke.Filled = false; mark.stroke.NumSides = 20; mark.stroke.Radius = markerScale * 3; mark.stroke.Thickness = 1; mark.stroke.Visible = false; mark.stroke.ZIndex = 302
+    end
+    table.insert(drawObjects, mark.main); table.insert(drawObjects, mark.stroke)
+    return mark
+end
+
+-- Thiết lập Player Marks
+if TRACK_PLAYERS then
     local function initMark(thisPlayer)
         local thisName = thisPlayer.Name 
         local thisManager = playerManagers[thisName]
+        if ( not thisManager ) then return end
         
-        if ( not thisManager ) then 
-            for i = 1, 10 do 
-                thisManager = playerManagers[thisName]
-                if ( thisManager ) then break end
-                task.wait(0.5)
-            end 
-            if ( not thisManager ) then return end
-        end
+        local markers = createGenericMarker()
         
-        local markers = {} 
-        local markMain
-        local markStroke
-        
-        if ( USE_QUADS ) then 
-            markMain = Drawing.new('Quad'); markMain.Filled = true; markMain.Thickness = 2; markMain.Visible = true; markMain.ZIndex = 303
-            markStroke = Drawing.new('Quad'); markStroke.Filled = false; markStroke.Thickness = 2; markStroke.Transparency = 0; markStroke.ZIndex = 302
-        else
-            markMain = Drawing.new('Circle'); markMain.Filled = true; markMain.NumSides = 20; markMain.Radius = markerScale * 3; markMain.Thickness = 2; markMain.Visible = true; markMain.ZIndex = 303
-            markStroke = Drawing.new('Circle'); markStroke.Filled = false; markStroke.NumSides = 20; markStroke.Radius = markerScale * 3; markStroke.Thickness = 1; markStroke.Visible = true; markStroke.ZIndex = 302
-        end
-        
-        table.insert(drawObjects, markMain); table.insert(drawObjects, markStroke)
-        
-        thisManager.onDeath = function() markMain.Filled = false end
-        thisManager.onRespawn = function() markMain.Filled = true; markMain.Visible = true; markStroke.Visible = true end
-        thisManager.onRemoval = function() markMain.Visible = false; markStroke.Visible = false end
+        thisManager.onDeath = function() markers.main.Filled = false end
+        thisManager.onRespawn = function() markers.main.Filled = true; markers.main.Visible = true; markers.stroke.Visible = true end
+        thisManager.onRemoval = function() markers.main.Visible = false; markers.stroke.Visible = false end
         thisManager.onLeave = function()
-            local idx1 = table.find(drawObjects, markMain)
-            if idx1 then table.remove(drawObjects, idx1) end
-            local idx2 = table.find(drawObjects, markStroke)
-            if idx2 then table.remove(drawObjects, idx2) end
-            task.spawn(function() tweenExp(markMain, 'Transparency', 0, 1); tweenExp(markStroke, 'Transparency', 0, 1); task.wait(1.5); markMain:Remove(); markStroke:Remove() end)
+            removeDrawObj(markers.main)
+            removeDrawObj(markers.stroke)
             playerMarks[thisName] = nil
         end
         
@@ -576,24 +533,24 @@ local playerMarks = {} do
             thisManager.onTeamChange = function(team) 
                 if ( DISPLAY_FRIEND_COLORS and thisManager.Friended ) then return end
                 local color = getPlayerColor(thisPlayer, thisManager, team)
-                markMain.Color = color; markStroke.Color = color
+                markers.main.Color = color; markers.stroke.Color = color
             end
         end 
         
         local initColor = getPlayerColor(thisPlayer, thisManager, thisPlayer.Team)
-        markMain.Color = initColor; markStroke.Color = initColor 
+        markers.main.Color = initColor; markers.stroke.Color = initColor 
 
-        markers.main = markMain; markers.stroke = markStroke
         if ( thisManager.Humanoid and thisManager.Humanoid.Health == 0 ) then thisManager.onDeath() end
         playerMarks[thisName] = markers
-        return markers
     end
     
     for _, manager in pairs(playerManagers) do initMark(manager.Player) end
     scriptCns.addMarks = playerService.PlayerAdded:Connect(function(player) task.wait(0.3); initMark(player) end)
 end
 
-local hoverPlayer
+--- Hover Target System ---
+local hoverPlayerName = nil
+local hoverNPCInstance = nil
 do 
     local lastCheckTime = 0
     scriptCns.inputChanged = inputService.InputChanged:Connect(function(input) 
@@ -606,314 +563,376 @@ do
             
             if ( (mousePos - radarPosition).Magnitude < RADAR_RADIUS ) then
                 local distanceThresh = 20 
-                hoverPlayer = nil
+                hoverPlayerName = nil
+                hoverNPCInstance = nil
                 
-                for thisName in pairs(playerManagers) do 
-                    local thisMark = playerMarks[thisName]
-                    if ( not thisMark ) then continue end
-                    
-                    local markPos = thisMark.main[USE_QUADS and 'PointD' or 'Position']
-                    local distance = (mousePos - markPos).Magnitude
-
-                    if ( distance < distanceThresh ) then
-                        distanceThresh = distance
-                        hoverPlayer = thisName
+                if TRACK_PLAYERS then
+                    for thisName, thisMark in pairs(playerMarks) do 
+                        if thisMark and thisMark.main.Visible then
+                            local markPos = thisMark.main[USE_QUADS and 'PointD' or 'Position']
+                            local distance = (mousePos - markPos).Magnitude
+                            if ( distance < distanceThresh ) then
+                                distanceThresh = distance
+                                hoverPlayerName = thisName
+                            end
+                        end
                     end
                 end
-                if ( hoverPlayer == nil ) then radarObjects.hoverText.Visible = false end
+                
+                if TRACK_NPCS and not hoverPlayerName then
+                    for npc, centerPos in pairs(currentNPCMarkersCenter) do
+                        local mark = npcMarkers[npc]
+                        if mark and mark.main.Visible then
+                            local distance = (mousePos - centerPos).Magnitude
+                            if distance < distanceThresh then
+                                distanceThresh = distance
+                                hoverNPCInstance = npc
+                            end
+                        end
+                    end
+                end
+                
+                if not hoverPlayerName and not hoverNPCInstance then radarObjects.hoverText.Visible = false end
             else
-                hoverPlayer = nil; radarObjects.hoverText.Visible = false 
+                hoverPlayerName = nil; hoverNPCInstance = nil; radarObjects.hoverText.Visible = false 
             end
         end
     end)
 end
 
---- Main radar loop ---
+--- Core Math Polar Loops ---
 local function cartToPolar(x, y) return math.sqrt(x^2 + y^2), math.atan2(y, x) end
 local function polarToCart(r, t) return r * mathCos(t), r * mathSin(t) end
 
-do
-    local finalLookVec = Vector3.zero
-    local textOffset = newV2(0, 5)
-    local rad90 = math.rad(90)
-    local rad180 = math.rad(180)
-    
-    local rayParams
-    if ( VISIBLITY_CHECK ) then
-        rayParams = RaycastParams.new()
-        rayParams.FilterType = Enum.RaycastFilterType.Exclude
-        rayParams.FilterDescendantsInstances = { clientPlayer.Character }
-        scriptCns.rayUpdate = clientPlayer.CharacterAdded:Connect(function(newChar) rayParams.FilterDescendantsInstances = { newChar } end)
+local destroying = false 
+local breadcrumbs = {}
+local breadcrumbVisuals = {}
+local lastRecordedPos = nil
+
+local finalLookVec = Vector3.zero
+local textOffset = newV2(0, 5)
+local rad90 = math.rad(90)
+local rad180 = math.rad(180)
+
+local rayParams
+if ( VISIBLITY_CHECK ) then
+    rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    rayParams.FilterDescendantsInstances = { clientPlayer.Character }
+    scriptCns.rayUpdate = clientPlayer.CharacterAdded:Connect(function(newChar) rayParams.FilterDescendantsInstances = { newChar } end)
+end
+
+scriptCns.radarLoop = runService.Heartbeat:Connect(function(deltaTime) 
+    if ( not clientRoot or not clientRoot.Parent ) then 
+        if clientPlayer.Character and clientPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            clientRoot = clientPlayer.Character.HumanoidRootPart
+            radarObjects.loadText.Visible = false 
+            radarObjects.loadOverlay.Visible = false
+        else
+            return 
+        end
+    end
+
+    local selfPos = clientRoot.Position
+    local cameraPos = clientCamera.CFrame.Position
+    local camAngle = 0 
+
+    if ( RADAR_ROTATION ) then 
+        local cameraLookVec = clientCamera.CFrame.LookVector
+        local fixedLookVec = newV3(cameraLookVec.X, 0, cameraLookVec.Z).Unit
+        finalLookVec = SMOOTH_ROT and finalLookVec:Lerp(fixedLookVec, 1 - mathExp(-SMOOTH_ROT_AMNT * deltaTime)) or fixedLookVec
+        camAngle = math.atan2(finalLookVec.X, finalLookVec.Z)
+    else
+        camAngle = rad180
     end
     
-    scriptCns.radarLoop = runService.Heartbeat:Connect(function(deltaTime) 
-        -- Fallback quét sửa lỗi hồi sinh cho chính bản thân LocalPlayer nếu mất nhân vật
-        if ( not clientRoot or not clientRoot.Parent ) then 
-            if clientPlayer.Character and clientPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                clientRoot = clientPlayer.Character.HumanoidRootPart
-                radarObjects.loadText.Visible = false 
-                radarObjects.loadOverlay.Visible = false
-            else
-                return 
+    -- Xử lý đường lưới & Cardinal
+    if ( RADAR_LINES ) then
+        local cosA, sinA = mathCos(-camAngle), mathSin(-camAngle)
+        local posN = radarPosition + newV2(sinA, -cosA) * RADAR_RADIUS
+        local posS = radarPosition + newV2(-sinA, cosA) * RADAR_RADIUS
+        local posE = radarPosition + newV2(cosA, sinA) * RADAR_RADIUS
+        local posW = radarPosition + newV2(-cosA, -sinA) * RADAR_RADIUS
+        
+        radarObjects.verticalLine.From = posN;   radarObjects.verticalLine.To = posS
+        radarObjects.horizontalLine.From = posW; radarObjects.horizontalLine.To = posE
+        
+        if CARDINAL_DISPLAY then
+            radarObjects.directionN.Position = radarPosition + newV2(sinA, -cosA) * RADAR_RADIUS - newV2(0, 8)
+            radarObjects.directionS.Position = radarPosition + newV2(-sinA, cosA) * RADAR_RADIUS - newV2(0, 7)
+            radarObjects.directionE.Position = radarPosition + newV2(cosA, sinA) * RADAR_RADIUS - newV2(0, 7)
+            radarObjects.directionW.Position = radarPosition + newV2(-cosA, -sinA) * RADAR_RADIUS - newV2(0, 7)
+        end
+    end
+
+    -- Cập nhật LocalPlayer Mark
+    local localMark = radarObjects.localMark
+    local localMarkStroke = radarObjects.localMarkStroke
+    if ( USE_QUADS ) then
+        local playerLookVec = clientRoot.CFrame.LookVector
+        local angle = (math.atan2(playerLookVec.X, playerLookVec.Z) - camAngle) - rad90
+        local angleCos, angleSin = mathCos(angle), mathSin(angle)
+        
+        local fixedA = radarPosition + newV2((quadPointA.X * angleSin) - (quadPointA.Y * angleCos), (quadPointA.X * angleCos) + (quadPointA.Y * angleSin))
+        local fixedB = radarPosition + newV2((quadPointB.X * angleSin) - (quadPointB.Y * angleCos), (quadPointB.X * angleCos) + (quadPointB.Y * angleSin))
+        local fixedC = radarPosition + newV2((quadPointC.X * angleSin) - (quadPointC.Y * angleCos), (quadPointC.X * angleCos) + (quadPointC.Y * angleSin))
+        local fixedD = radarPosition + newV2((quadPointD.X * angleSin) - (quadPointD.Y * angleCos), (quadPointD.X * angleCos) + (quadPointD.Y * angleSin))
+        
+        localMark.PointA = fixedA; localMark.PointB = fixedB; localMark.PointC = fixedC; localMark.PointD = fixedD
+        localMarkStroke.PointA = fixedA; localMarkStroke.PointB = fixedB; localMarkStroke.PointC = fixedC; localMarkStroke.PointD = fixedD
+    else
+        localMark.Position = radarPosition; localMarkStroke.Position = radarPosition
+    end
+
+    -- Breadcrumbs (Ghi vết đường đi cũ)
+    if settings.RECORD_PATH then
+        if not lastRecordedPos or (selfPos - lastRecordedPos).Magnitude >= settings.PATH_DISTANCE then
+            lastRecordedPos = selfPos
+            table.insert(breadcrumbs, selfPos)
+            local obj = newDrawObj('Circle', {Color = settings.PATH_COLOR; Filled = true; NumSides = 4; Radius = math.clamp(1.5 * RADAR_SCALE, 1, 4); Visible = false; ZIndex = 301;})
+            table.insert(breadcrumbVisuals, obj)
+            
+            if #breadcrumbs > settings.PATH_MAX_POINTS then
+                local oldObj = table.remove(breadcrumbVisuals, 1)
+                if oldObj then removeDrawObj(oldObj) end
+                table.remove(breadcrumbs, 1)
             end
         end
-
-        local selfPos = clientRoot.Position
-        local cameraPos
-        local camAngle = 0 
-
-        do 
-            if ( RADAR_ROTATION ) then 
-                local cameraLookVec = clientCamera.CFrame.LookVector
-                local fixedLookVec = newV3(cameraLookVec.X, 0, cameraLookVec.Z).Unit
-                if ( SMOOTH_ROT ) then
-                    finalLookVec = finalLookVec:Lerp(fixedLookVec, 1 - mathExp(-SMOOTH_ROT_AMNT * deltaTime))
-                else
-                    finalLookVec = fixedLookVec
+        for i, worldPos in ipairs(breadcrumbs) do
+            local visual = breadcrumbVisuals[i]
+            if visual then
+                local posDelta = worldPos - selfPos
+                local radius, angle = cartToPolar(posDelta.X, posDelta.Z)
+                local fixedRadius = radius * RADAR_SCALE
+                if fixedRadius > RADAR_RADIUS then visual.Visible = false else
+                    visual.Visible = true
+                    visual.Radius = math.clamp(1.5 * RADAR_SCALE, 1, 4)
+                    angle += (camAngle + rad180)
+                    local x, y = polarToCart(fixedRadius, angle)
+                    visual.Position = radarPosition + newV2(x, y)
                 end
-                camAngle = math.atan2(finalLookVec.X, finalLookVec.Z)
-            else
-                camAngle = rad180
             end
-            cameraPos = clientCamera.CFrame.Position 
+        end
+    end
+
+    --- VÒNG LẶP CẬP NHẬT NGƯỜI CHƠI ---
+    if TRACK_PLAYERS then
+        for thisName, thisManager in pairs(playerManagers) do 
+            local thisMark = playerMarks[thisName]
+            if ( not thisMark ) then continue end
+            local main, stroke = thisMark.main, thisMark.stroke 
+            
+            if ( DISPLAY_TEAMMATES == false and thisManager.Team == clientTeam ) then 
+                main.Visible = false; stroke.Visible = false; continue
+            end
+            
+            local cframe = thisManager:GetCFrame()
+            if ( not cframe ) then 
+                -- KIỂM TRA STREAMING: Tự ẩn đi nếu đối tượng văng khỏi khu vực nạp map
+                main.Visible = false; stroke.Visible = false; continue 
+            end 
+            
+            local position = cframe.Position 
+            local posDelta = position - selfPos
+            local radius, angle = cartToPolar(posDelta.X, posDelta.Z)
+            local fixedRadius = radius * RADAR_SCALE 
+            
+            if ( fixedRadius > RADAR_RADIUS ) then
+                if ( DISPLAY_OFFSCREEN ) then 
+                    main.Transparency = OFFSCREEN_TRANSPARENCY; stroke.Transparency = OFFSCREEN_TRANSPARENCY
+                else
+                    main.Visible = false; stroke.Visible = false; continue
+                end
+            else
+                main.Visible = true; stroke.Visible = true 
+                if thisManager.Humanoid and thisManager.Humanoid.Health > 0 then
+                    main.Filled = true; main.Transparency = 1; stroke.Transparency = 1
+                else
+                    main.Filled = false -- Chết lộ viền rỗng
+                end
+            end
+            
+            radius = math.clamp(fixedRadius, 0, RADAR_RADIUS)
+            angle += (camAngle + rad180) 
+            local x, y = polarToCart(radius, angle)
+            local finalPos = radarPosition + newV2(x, y)
+            
+            if ( USE_QUADS ) then
+                local playerLookVec = cframe.LookVector
+                local angleQ = (math.atan2(playerLookVec.X, playerLookVec.Z)) - rad90 - camAngle
+                local angleCos, angleSin = mathCos(angleQ), mathSin(angleQ)
+                local fixedA = newV2((quadPointA.X * angleSin) - (quadPointA.Y * angleCos), (quadPointA.X * angleCos) + (quadPointA.Y * angleSin))
+                local fixedB = newV2((quadPointB.X * angleSin) - (quadPointB.Y * angleCos), (quadPointB.X * angleCos) + (quadPointB.Y * angleSin))                
+                local fixedC = newV2((quadPointC.X * angleSin) - (quadPointC.Y * angleCos), (quadPointC.X * angleCos) + (quadPointC.Y * angleSin))  
+                local fixedD = newV2((quadPointD.X * angleSin) - (quadPointD.Y * angleCos), (quadPointD.X * angleCos) + (quadPointD.Y * angleSin))  
+                if ( MARKER_FALLOFF ) then
+                    local scaleFalloff = math.clamp(MARKER_FALLOFF_AMNT / posDelta.Magnitude, 0.75, 1)
+                    fixedA *= scaleFalloff; fixedB *= scaleFalloff; fixedC *= scaleFalloff; fixedD *= scaleFalloff
+                end
+                main.PointA = finalPos + fixedA; main.PointB = finalPos + fixedB; main.PointC = finalPos + fixedC; main.PointD = finalPos + fixedD
+                stroke.PointA = main.PointA; stroke.PointB = main.PointB; stroke.PointC = main.PointC; stroke.PointD = main.PointD
+            else                    
+                local dotRadius = markerScale * 3
+                if ( MARKER_FALLOFF ) then dotRadius *= math.clamp(MARKER_FALLOFF_AMNT / posDelta.Magnitude, 0.75, 1) end
+                main.Radius = dotRadius; main.Position = finalPos
+                stroke.Radius = dotRadius; stroke.Position = finalPos
+            end
+            
+            if ( hoverPlayerName == thisName ) then
+                radarObjects.hoverText.Text = string.format('%s\n(%d studs)', thisManager.DisplayName, posDelta.Magnitude)
+                radarObjects.hoverText.Size = math.clamp(16 * RADAR_SCALE, 16, 24); radarObjects.hoverText.Visible = true
+                radarObjects.hoverText.Position = radarObjects.hoverText.Position:Lerp(finalPos + textOffset, 1 - mathExp(-30 * deltaTime))
+            end
+            
+            if ( VISIBLITY_CHECK ) then
+                local direction = ( position - cameraPos ).Unit * 12345
+                local raycast = workspace:Raycast(cameraPos, direction, rayParams)
+                if ( raycast and ( raycast.Position - position ).Magnitude > 4 ) then
+                    main.Transparency /= 5; stroke.Transparency /= 5
+                end 
+            end
+        end
+    end
+
+    --- VÒNG LẶP CẬP NHẬT NPC ---
+    if TRACK_NPCS then
+        table.clear(currentNPCMarkersCenter)
+        
+        -- Dọn sạch marker NPC lỗi thời (đã rời khu vực stream hoặc bị xóa)
+        for npc, mark in pairs(npcMarkers) do
+            if not activeNPCs[npc] or not activeNPCs[npc].Parent then
+                removeDrawObj(mark.main)
+                removeDrawObj(mark.stroke)
+                npcMarkers[npc] = nil
+            end
         end
         
-        do 
-            if ( RADAR_LINES ) then
-                local cosA, sinA = mathCos(-camAngle), mathSin(-camAngle)
-                local posN = radarPosition + newV2(sinA, -cosA) * RADAR_RADIUS
-                local posS = radarPosition + newV2(-sinA, cosA) * RADAR_RADIUS
-                local posE = radarPosition + newV2(cosA, sinA) * RADAR_RADIUS
-                local posW = radarPosition + newV2(-cosA, -sinA) * RADAR_RADIUS
-                
-                radarObjects.verticalLine.From = posN;   radarObjects.verticalLine.To = posS
-                radarObjects.horizontalLine.From = posW; radarObjects.horizontalLine.To = posE
-                
-                if CARDINAL_DISPLAY then
-                    local padding = 0
-                    radarObjects.directionN.Position = radarPosition + newV2(sinA, -cosA) * (RADAR_RADIUS + padding) - newV2(0, 8)
-                    radarObjects.directionS.Position = radarPosition + newV2(-sinA, cosA) * (RADAR_RADIUS + padding) - newV2(0, 7)
-                    radarObjects.directionE.Position = radarPosition + newV2(cosA, sinA) * (RADAR_RADIUS + padding) - newV2(0, 7)
-                    radarObjects.directionW.Position = radarPosition + newV2(-cosA, -sinA) * (RADAR_RADIUS + padding) - newV2(0, 7)
-                end
+        -- Tiến hành vẽ NPC còn hoạt động
+        for npc, hrp in pairs(activeNPCs) do
+            if not hrp.Parent then continue end
+            local mark = npcMarkers[npc]
+            if not mark then
+                mark = createGenericMarker()
+                mark.main.Color = RADAR_THEME.NPC_Marker
+                mark.stroke.Color = RADAR_THEME.NPC_Marker
+                npcMarkers[npc] = mark
             end
-        end
-
-        do
-            local localMark = radarObjects.localMark
-            local localMarkStroke = radarObjects.localMarkStroke
-            if ( USE_QUADS ) then
-                local playerLookVec = clientRoot.CFrame.LookVector
-                local angle = (math.atan2(playerLookVec.X, playerLookVec.Z) - camAngle) - rad90
-                local angleCos = mathCos(angle)
-                local angleSin = mathSin(angle)
-                
-                local fixedA = radarPosition + newV2((quadPointA.X * angleSin) - (quadPointA.Y * angleCos), (quadPointA.X * angleCos) + (quadPointA.Y * angleSin))
-                local fixedB = radarPosition + newV2((quadPointB.X * angleSin) - (quadPointB.Y * angleCos), (quadPointB.X * angleCos) + (quadPointB.Y * angleSin))
-                local fixedC = radarPosition + newV2((quadPointC.X * angleSin) - (quadPointC.Y * angleCos), (quadPointC.X * angleCos) + (quadPointC.Y * angleSin))
-                local fixedD = radarPosition + newV2((quadPointD.X * angleSin) - (quadPointD.Y * angleCos), (quadPointD.X * angleCos) + (quadPointD.Y * angleSin))
-                
-                localMark.PointA = fixedA; localMark.PointB = fixedB; localMark.PointC = fixedC; localMark.PointD = fixedD
-                localMarkStroke.PointA = fixedA; localMarkStroke.PointB = fixedB; localMarkStroke.PointC = fixedC; localMarkStroke.PointD = fixedD
-            else
-                localMark.Position = radarPosition; localMark.Radius = markerScale * 3
-                localMarkStroke.Position = radarPosition; localMarkStroke.Radius = markerScale * 3
-            end
-        end
-
-        if settings.RECORD_PATH then
-            if not lastRecordedPos or (selfPos - lastRecordedPos).Magnitude >= settings.PATH_DISTANCE then
-                lastRecordedPos = selfPos
-                table.insert(breadcrumbs, selfPos)
-                
-                local obj = newDrawObj('Circle', {
-                    Color = settings.PATH_COLOR;
-                    Filled = true;
-                    NumSides = 4; 
-                    Radius = math.clamp(1.5 * RADAR_SCALE, 1, 4);
-                    Visible = false;
-                    ZIndex = 301;
-                })
-                table.insert(breadcrumbVisuals, obj)
-                
-                if #breadcrumbs > settings.PATH_MAX_POINTS then
-                    local oldObj = table.remove(breadcrumbVisuals, 1)
-                    if oldObj then
-                        local idx = table.find(drawObjects, oldObj)
-                        if idx then table.remove(drawObjects, idx) end
-                        oldObj:Remove()
-                    end
-                    table.remove(breadcrumbs, 1)
-                end
-            end
-        end
-
-        -- Player marks loop
-        do
-            if settings.RECORD_PATH then
-                for i, worldPos in ipairs(breadcrumbs) do
-                    local visual = breadcrumbVisuals[i]
-                    if visual then
-                        local posDelta = worldPos - selfPos
-                        local radius, angle = cartToPolar(posDelta.X, posDelta.Z)
-                        local fixedRadius = radius * RADAR_SCALE
-                        
-                        if fixedRadius > RADAR_RADIUS then
-                            visual.Visible = false
-                        else
-                            visual.Visible = true
-                            visual.Radius = math.clamp(1.5 * RADAR_SCALE, 1, 4)
-                            angle += (camAngle + rad180)
-                            local x, y = polarToCart(fixedRadius, angle)
-                            visual.Position = radarPosition + newV2(x, y)
-                        end
-                    end
-                end
-            end
-
-            for thisName, thisManager in pairs(playerManagers) do 
-                local thisMark = playerMarks[thisName]
-                if ( not thisMark ) then continue end
-                local main, stroke = thisMark.main, thisMark.stroke 
-                
-                if ( DISPLAY_TEAMMATES == false and thisManager.Team == clientTeam ) then 
-                    main.Visible = false; stroke.Visible = false 
-                    continue
-                end
-                
-                local cframe = thisManager:GetCFrame()
-                -- Nếu game bật StreamingEnabled và người chơi ở quá xa, cframe trả về nil
-                if ( not cframe ) then 
-                    main.Visible = false; stroke.Visible = false -- Tạm thời ẩn marker đi thay vì bị đơ vị trí cũ
-                    continue 
-                end 
-                
-                local position = cframe.Position 
-                local posDelta = position - selfPos
-                
-                local radius, angle = cartToPolar(posDelta.X, posDelta.Z)
-                local fixedRadius = radius * RADAR_SCALE 
-                
-                if ( fixedRadius > RADAR_RADIUS ) then
-                    if ( DISPLAY_OFFSCREEN ) then 
-                        main.Transparency = OFFSCREEN_TRANSPARENCY; stroke.Transparency = OFFSCREEN_TRANSPARENCY
-                    else
-                        main.Visible = false; stroke.Visible = false 
-                        continue
-                    end
+            
+            local posDelta = hrp.Position - selfPos
+            local radius, angle = cartToPolar(posDelta.X, posDelta.Z)
+            local fixedRadius = radius * RADAR_SCALE
+            
+            if fixedRadius > RADAR_RADIUS then
+                if DISPLAY_OFFSCREEN then
+                    mark.main.Transparency = OFFSCREEN_TRANSPARENCY; mark.stroke.Transparency = OFFSCREEN_TRANSPARENCY
+                    mark.main.Visible = true; mark.stroke.Visible = true
                 else
-                    -- Ép buộc hiện lại marker khi đã vào vùng hiển thị hoặc sau khi Respawn thành công
-                    main.Visible = true; stroke.Visible = true 
-                    
-                    -- Nếu người chơi còn sống, trả về độ mờ chuẩn (Fix lỗi chết bị mất mờ)
-                    if thisManager.Humanoid and thisManager.Humanoid.Health > 0 then
-                        main.Filled = true
-                        main.Transparency = 1; stroke.Transparency = 1
-                    else
-                        main.Filled = false -- Trạng thái hiển thị đã chết (chỉ có viền)
-                    end
+                    mark.main.Visible = false; mark.stroke.Visible = false; continue
+                end
+            else
+                mark.main.Visible = true; mark.stroke.Visible = true
+                mark.main.Transparency = 1; mark.stroke.Transparency = 1
+            end
+            
+            radius = math.clamp(fixedRadius, 0, RADAR_RADIUS)
+            angle += (camAngle + rad180)
+            local x, y = polarToCart(radius, angle)
+            local finalPos = radarPosition + newV2(x, y)
+            currentNPCMarkersCenter[npc] = finalPos
+            
+            if USE_QUADS then
+                local rotAngle = (math.atan2(hrp.CFrame.LookVector.X, hrp.CFrame.LookVector.Z)) - rad90 - camAngle
+                local c, s = mathCos(rotAngle), mathSin(rotAngle)
+                local fA, fB, fC, fD = quadPointA, quadPointB, quadPointC, quadPointD
+                
+                if MARKER_FALLOFF then
+                    local falloff = math.clamp(MARKER_FALLOFF_AMNT / posDelta.Magnitude, 0.75, 1)
+                    fA *= falloff; fB *= falloff; fC *= falloff; fD *= falloff
                 end
                 
-                radius = math.clamp(fixedRadius, 0, RADAR_RADIUS)
-                angle += (camAngle + rad180) 
-                local x, y = polarToCart(radius, angle)
-                local finalPos = radarPosition + newV2(x, y)
-                
-                if ( USE_QUADS ) then
-                    local playerLookVec = cframe.LookVector
-                    local angleQ = (math.atan2(playerLookVec.X, playerLookVec.Z)) - rad90 - camAngle
-                    local angleCos = mathCos(angleQ)
-                    local angleSin = mathSin(angleQ)
-                    
-                    local fixedA = newV2((quadPointA.X * angleSin) - (quadPointA.Y * angleCos), (quadPointA.X * angleCos) + (quadPointA.Y * angleSin))
-                    local fixedB = newV2((quadPointB.X * angleSin) - (quadPointB.Y * angleCos), (quadPointB.X * angleCos) + (quadPointB.Y * angleSin))                
-                    local fixedC = newV2((quadPointC.X * angleSin) - (quadPointC.Y * angleCos), (quadPointC.X * angleCos) + (quadPointC.Y * angleSin))  
-                    local fixedD = newV2((quadPointD.X * angleSin) - (quadPointD.Y * angleCos), (quadPointD.X * angleCos) + (quadPointD.Y * angleSin))  
-                    if ( MARKER_FALLOFF ) then
-                        local scaleFalloff = math.clamp(MARKER_FALLOFF_AMNT / posDelta.Magnitude, 0.75, 1)
-                        fixedA *= scaleFalloff; fixedB *= scaleFalloff; fixedC *= scaleFalloff; fixedD *= scaleFalloff
-                    end
-                    fixedA += finalPos; fixedB += finalPos; fixedC += finalPos; fixedD += finalPos
-                    
-                    main.PointA = fixedA; main.PointB = fixedB; main.PointC = fixedC; main.PointD = fixedD
-                    stroke.PointA = fixedA; stroke.PointB = fixedB; stroke.PointC = fixedC; stroke.PointD = fixedD
-                else                    
-                    local dotRadius = markerScale * 3
-                    if ( MARKER_FALLOFF ) then dotRadius *= math.clamp(MARKER_FALLOFF_AMNT / posDelta.Magnitude, 0.75, 1) end
-                    main.Radius = dotRadius; main.Position = finalPos
-                    stroke.Radius = dotRadius; stroke.Position = finalPos
-                end
-                
-                if ( hoverPlayer == thisName ) then
-                    local text = radarObjects.hoverText 
-                    text.Text = string.format('%s\n(%d studs away)', thisManager.DisplayName, posDelta.Magnitude)
-                    text.Size = math.clamp(16 * RADAR_SCALE, 16, 24)
-                    text.Visible = true
-                    text.Position = text.Position:Lerp(finalPos + textOffset, 1 - mathExp(-30 * deltaTime))
-                end
-                
-                if ( VISIBLITY_CHECK ) then
-                    local direction = ( position - cameraPos ).Unit * 12345
-                    local raycast = workspace:Raycast(cameraPos, direction, rayParams)
-                    if ( raycast ) then
-                        if ( ( raycast.Position - position ).Magnitude > 4 ) then
-                            main.Transparency /= 5; stroke.Transparency /= 5
-                        end
-                    else
-                        main.Transparency /= 5; stroke.Transparency /= 5
-                    end 
-                end
+                mark.main.PointA = finalPos + newV2((fA.X * s) - (fA.Y * c), (fA.X * c) + (fA.Y * s))
+                mark.main.PointB = finalPos + newV2((fB.X * s) - (fB.Y * c), (fB.X * c) + (fB.Y * s))
+                mark.main.PointC = finalPos + newV2((fC.X * s) - (fC.Y * c), (fC.X * c) + (fC.Y * s))
+                mark.main.PointD = finalPos + newV2((fD.X * s) - (fD.Y * c), (fD.X * c) + (fD.Y * s))
+                mark.stroke.PointA = mark.main.PointA; mark.stroke.PointB = mark.main.PointB; mark.stroke.PointC = mark.main.PointC; mark.stroke.PointD = mark.main.PointD
+            else
+                local dotRadius = markerScale * 3
+                if MARKER_FALLOFF then dotRadius *= math.clamp(MARKER_FALLOFF_AMNT / posDelta.Magnitude, 0.75, 1) end
+                mark.main.Radius = dotRadius; mark.main.Position = finalPos
+                mark.stroke.Radius = dotRadius; mark.stroke.Position = finalPos
+            end
+            
+            if hoverNPCInstance and hoverNPCInstance == npc then
+                radarObjects.hoverText.Text = string.format('%s\n[%d studs]', npc.Name, posDelta.Magnitude)
+                radarObjects.hoverText.Size = math.clamp(16 * RADAR_SCALE, 16, 24); radarObjects.hoverText.Visible = true
+                radarObjects.hoverText.Position = radarObjects.hoverText.Position:Lerp(finalPos + textOffset, 1 - mathExp(-30 * deltaTime))
+            end
+        end
+    end
+end)
+
+if ( DISPLAY_RGB_COLORS and TRACK_PLAYERS ) then
+    local hue = 0
+    scriptCns.rgbLoop = runService.Heartbeat:Connect(function(deltaTime) 
+        hue += deltaTime / 20
+        if ( hue > 1 ) then hue -= 1 end
+        local color = Color3.fromHSV(hue, 0.9, 0.9)
+        for thisName, thisManager in pairs(playerManagers) do 
+            local thisMark = playerMarks[thisName]
+            if ( thisMark and not (DISPLAY_FRIEND_COLORS and thisManager.Friended) ) then 
+                thisMark.main.Color = color; thisMark.stroke.Color = color 
             end
         end
     end)
-    
-    if ( DISPLAY_RGB_COLORS ) then
-        local hue = 0
-        scriptCns.rgbLoop = runService.Heartbeat:Connect(function(deltaTime) 
-            hue += deltaTime / 20
-            if ( hue > 1 ) then hue -= 1 end
-            local color = Color3.fromHSV(hue, 0.9, 0.9)
-            
-            for thisName, thisManager in pairs(playerManagers) do 
-                local thisMark = playerMarks[thisName]
-                if ( not thisMark ) then continue end
-                if ( DISPLAY_FRIEND_COLORS and thisManager.Friended ) then continue end
-                thisMark.main.Color = color; thisMark.stroke.Color = color 
-            end
-        end)
-    end
 end
 
---- Setup friend handling ---
-do
+--- Friend Handling Setup ---
+if TRACK_PLAYERS then
     scriptCns.pm_friendAdd = starterGui:GetCore('PlayerFriendedEvent').Event:Connect(function(player)
-        local name = player.Name
-        local mark = playerMarks[name]
-        local manager = playerManagers[name]
+        local mark = playerMarks[player.Name]
+        local manager = playerManagers[player.Name]
         if ( manager ) then 
             manager.Friended = true 
             if ( mark and DISPLAY_FRIEND_COLORS ) then mark.main.Color = RADAR_THEME.Friend_Marker; mark.stroke.Color = RADAR_THEME.Friend_Marker end
         end
     end)
-    
     scriptCns.pm_friendRemove = starterGui:GetCore('PlayerUnfriendedEvent').Event:Connect(function(player)
-        local name = player.Name
-        local mark = playerMarks[name]
-        local manager = playerManagers[name]
+        local mark = playerMarks[player.Name]
+        local manager = playerManagers[player.Name]
         if ( manager ) then 
             manager.Friended = false 
             if ( mark ) then 
-                local color
-                if ( DISPLAY_TEAM_COLORS ) then  
-                    if player.Team and player.Team:IsA("Team") then color = player.Team.TeamColor.Color
-                    else color = player.TeamColor.Color end
-                else 
-                    color = RADAR_THEME.Generic_Marker 
-                end
+                local color = DISPLAY_TEAM_COLORS and (player.Team and player.Team.TeamColor.Color or player.TeamColor.Color) or RADAR_THEME.Generic_Marker
                 mark.main.Color = color; mark.stroke.Color = color
             end
         end
     end)
 end
 
-_G.RadarKill = killScript
+--- Giải Phóng Bộ Nhớ Hoàn Toàn (Kill Script) ---
+_G.RadarKill = function()
+    if ( destroying ) then return end 
+    destroying = true
+    
+    for _, con in pairs(scriptCns) do con:Disconnect() end
+    
+    if TRACK_PLAYERS then
+        for name, manager in pairs(playerManagers) do 
+            for _, con in pairs(manager.Cns) do con:Disconnect() end
+        end
+    end
+    
+    for _, obj in ipairs(drawObjects) do pcall(function() obj:Remove() end) end
+    
+    table.clear(drawObjects)
+    table.clear(playerManagers)
+    table.clear(playerMarks)
+    table.clear(npcMarkers)
+    table.clear(radarLines)
+    table.clear(activeNPCs)
+    table.clear(currentNPCMarkersCenter)
+    table.clear(breadcrumbs)
+    table.clear(breadcrumbVisuals)
+    
+    _G.RadarKill = nil
+end

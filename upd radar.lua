@@ -1,3 +1,61 @@
+--- Drawing Player Radar
+--- Made by topit
+--- Modified (v1.3.4): Added Mobile Drag, Dynamic Sizing, Custom Start Pos, fixed Cardinal Math
+local scriptver = 'v1.3.4-Player'
+
+if ( _G.RadarKill ) then
+    _G.RadarKill()
+end
+
+if ( not game:IsLoaded() ) then
+    game.Loaded:Wait()
+end
+
+--- Settings ---
+local existingSettings = _G.RadarSettings or {}
+local settings = {
+    --- Radar settings
+    RADAR_LINES = true; 
+    RADAR_LINE_DISTANCE = 50; 
+    RADAR_SCALE = 1; 
+    RADAR_RADIUS = 125; 
+    RADAR_START_POS = Vector2.new(300, 250); -- Tọa độ hiển thị mặc định của tâm Radar khi chạy script
+    RADAR_ROTATION = true; 
+    SMOOTH_ROT = true; 
+    SMOOTH_ROT_AMNT = 30; 
+    CARDINAL_DISPLAY = true; 
+    
+    --- Marker settings
+    DISPLAY_OFFSCREEN = true; 
+    DISPLAY_TEAMMATES = true; 
+    DISPLAY_TEAM_COLORS = true; 
+    DISPLAY_FRIEND_COLORS = true; 
+    DISPLAY_RGB_COLORS = false; 
+    MARKER_SCALE_BASE = 1.25; 
+    MARKER_SCALE_MAX = 1.25; 
+    MARKER_SCALE_MIN = 0.75; 
+    MARKER_FALLOFF = true; 
+    MARKER_FALLOFF_AMNT = 125; 
+    OFFSCREEN_TRANSPARENCY = 0.3; 
+    USE_FALLBACK = false; 
+    USE_QUADS = true; 
+    USE_TEAM_COLORS = false; 
+    VISIBLITY_CHECK = false; 
+    
+    --- Theme
+    RADAR_THEME = {
+        Outline = Color3.fromRGB(35, 35, 45); 
+        Background = Color3.fromRGB(25, 25, 35); 
+        DragHandle = Color3.fromRGB(50, 50, 255); 
+        Cardinal_Lines = Color3.fromRGB(110, 110, 120); 
+        Distance_Lines = Color3.fromRGB(65, 65, 75); 
+        Generic_Marker = Color3.fromRGB(255, 25, 115); 
+        Local_Marker = Color3.fromRGB(115, 25, 255); 
+        Team_Marker = Color3.fromRGB(25, 115, 255); 
+        Friend_Marker = Color3.fromRGB(25, 255, 115); 
+    };
+}
+
 for k, v in pairs(existingSettings) do 
     if ( v ~= nil ) then settings[k] = v end
 end
@@ -573,7 +631,7 @@ do
             cameraPos = clientCamera.CFrame.Position 
         end
         
-        -- Vertical and horizontal lines (Fixed Cardinal Math)
+                -- Vertical and horizontal lines (Fixed Cardinal Math)
         do 
             if ( RADAR_LINES ) then
                 local cosA, sinA = mathCos(-camAngle), mathSin(-camAngle)
@@ -586,13 +644,18 @@ do
                 radarObjects.horizontalLine.From = posW; radarObjects.horizontalLine.To = posE
                 
                 if CARDINAL_DISPLAY then
-                    radarObjects.directionN.Position = posN - newV2(0, 16)
-                    radarObjects.directionS.Position = posS + newV2(0, 4)
-                    radarObjects.directionE.Position = posE + newV2(8, -7)
-                    radarObjects.directionW.Position = posW - newV2(12, 7)
+                    -- Khoảng cách từ chữ đến rìa đường tròn (Thay đổi số 12 nếu muốn chữ xa/gần hơn)
+                    local padding = 0
+                    
+                    -- Nhân khoảng cách trực tiếp với Vector xoay và trừ đi bán kính Font chữ để căn giữa chữ Y
+                    radarObjects.directionN.Position = radarPosition + newV2(sinA, -cosA) * (RADAR_RADIUS + padding) - newV2(0, 8)
+                    radarObjects.directionS.Position = radarPosition + newV2(-sinA, cosA) * (RADAR_RADIUS + padding) - newV2(0, 7)
+                    radarObjects.directionE.Position = radarPosition + newV2(cosA, sinA) * (RADAR_RADIUS + padding) - newV2(0, 7)
+                    radarObjects.directionW.Position = radarPosition + newV2(-cosA, -sinA) * (RADAR_RADIUS + padding) - newV2(0, 7)
                 end
             end
         end
+
         
         -- Centermark
         do

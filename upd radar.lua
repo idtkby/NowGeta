@@ -1,5 +1,3 @@
-
-
 for k, v in pairs(existingSettings) do 
     if ( v ~= nil ) then settings[k] = v end
 end

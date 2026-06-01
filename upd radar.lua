@@ -522,16 +522,29 @@ local playerMarks = {} do
             playerMarks[thisName] = nil
         end
         
+                -- [ĐÃ SỬA] Hàm lấy màu tự động theo Team thời gian thực
         local function getPlayerColor(player, manager, team)
             if DISPLAY_FRIEND_COLORS and manager.Friended then return RADAR_THEME.Friend_Marker end
+            
+            -- Ưu tiên hiển thị màu tự động theo màu gốc của Team trong game
             if DISPLAY_TEAM_COLORS then
-                if USE_TEAM_COLORS then return player.TeamColor.Color
-                elseif team == clientTeam then return RADAR_THEME.Team_Marker
-                else return RADAR_THEME.Generic_Marker end
+                if team and team:IsA("Team") then
+                    return team.TeamColor.Color -- Lấy trực tiếp màu của Team đó
+                elseif player.TeamColor then
+                    return player.TeamColor.Color -- Fallback theo TeamColor của Player
+                end
+                
+                -- Nếu không bật chọn màu tự động của game thì mới dùng màu Theme cố định
+                if team == clientTeam then 
+                    return RADAR_THEME.Team_Marker
+                else 
+                    return RADAR_THEME.Generic_Marker 
+                end
             end
             return RADAR_THEME.Generic_Marker
         end
 
+        -- [ĐÃ SỬA] Kích hoạt sự kiện đổi màu Marker ngay khi Player đổi Team
         if ( DISPLAY_TEAM_COLORS ) then 
             thisManager.onTeamChange = function(team) 
                 if ( DISPLAY_FRIEND_COLORS and thisManager.Friended ) then return end
@@ -540,8 +553,10 @@ local playerMarks = {} do
             end
         end 
         
+        -- Khởi tạo màu ban đầu khi cài đặt Marker
         local initColor = getPlayerColor(thisPlayer, thisManager, thisPlayer.Team)
         markMain.Color = initColor; markStroke.Color = initColor 
+
         
         markers.main = markMain; markers.stroke = markStroke
         if ( thisManager.Humanoid and thisManager.Humanoid.Health == 0 ) then thisManager.onDeath() end
@@ -802,15 +817,21 @@ do
             manager.Friended = false 
             if ( mark ) then 
                 local color
+                -- [ĐÃ SỬA] Trả về đúng màu tự động của Team khi hủy kết bạn
                 if ( DISPLAY_TEAM_COLORS ) then  
-                    if ( USE_TEAM_COLORS ) then color = player.TeamColor.Color
-                    elseif ( player.Team == clientTeam ) then color = RADAR_THEME.Team_Marker
-                    else color = RADAR_THEME.Generic_Marker end
-                else color = RADAR_THEME.Generic_Marker end
-                mark.main.Color = color; mark.stroke.Color = color
+                    if player.Team and player.Team:IsA("Team") then
+                        color = player.Team.TeamColor.Color
+                    else
+                        color = player.TeamColor.Color
+                    end
+                else 
+                    color = RADAR_THEME.Generic_Marker 
+                end
+                mark.main.Color = color; markStroke.Color = color
             end
         end
     end)
+
 end
 
 _G.RadarKill = killScript

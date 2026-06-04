@@ -24,6 +24,7 @@ local creatorId = tonumber(game.CreatorId)
 local gameLists = {
     FreeVersion = {
         allowedGamesByCreatorId = {
+            [1041977165] = {name = "Kick a Lucky Block", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/Nig.lua"}, 
             [35151686] = {name = "Get Fat to Splash", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/bgdhd.lua"}, 
             [35251154] = {name = "Driving Legends", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/Bbn.lua"}, 
             [11987919] = {name = "Taxi Boss", url = "https://raw.githubusercontent.com/mabdu21/kjandsaddjadbhahayenajhsjbdwa/refs/heads/main/TexiBoss.lua"},
@@ -36,11 +37,11 @@ local gameLists = {
             [35786254] = {name = "Mines", url = "https://raw.githubusercontent.com/mabdu21/kjandsaddjadbhahayenajhsjbdwa/refs/heads/main/Mine.lua"},
             [35815576] = {name = "Schedule 🥔", url = "https://pastebin.com/raw/gCSmFnbb"},
 	        [719390069] = {name = "Be a Lucky Block", url = "https://raw.githubusercontent.com/mabdu21/kjandsaddjadbhahayenajhsjbdwa/refs/heads/main/luckyblock.txt"},
-	        [483027661] = {name = "Bite by Night", url = "https://raw.githubusercontent.com/mabdu21/Hahahahahxhshnshbuefibeeewiyehhxhss/refs/heads/main/526vs27gstbbnp7.lua"},
-	        [635601940] = {name = "Bite by Night", url = "https://raw.githubusercontent.com/mabdu21/Hahahahahxhshnshbuefibeeewiyehhxhss/refs/heads/main/526vs27gstbbnp7.lua"},
+	        [483027661] = {name = "Bite by Night", url = "https://raw.githubusercontent.com/mabdu21/Hahahahahxhshnshbuefibeeewiyehhxhss/refs/heads/main/d1.lua"},
+	        [635601940] = {name = "Bite by Night", url = "https://raw.githubusercontent.com/mabdu21/Hahahahahxhshnshbuefibeeewiyehhxhss/refs/heads/main/d1.lua"},
             [34761390] = {name = "Protect The House From Monsters", url = "https://raw.githubusercontent.com/mabdu21/kjandsaddjadbhahayenajhsjbdwa/refs/heads/main/protect.lua"}, 
-            [8818124] = {name = "Violence District", url = "https://raw.githubusercontent.com/mabdu21/kjandsaddjadbhahayenajhsjbdwa/refs/heads/main/addon.lua.txt"},
-            [6022628] = {name = "ST : Blockade Battlefront", url = "https://pastefy.app/X5nY9zvC/raw"},
+            [8818124] = {name = "Violence District", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/fffae"},
+            [6022628] = {name = "ST : Blockade Battlefront", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/Paid.lua"},
             [12398672] = {name = "Ink Game", url = "https://raw.githubusercontent.com/mabdu21/kjandsaddjadbhahayenajhsjbdwa/refs/heads/main/inkgame.lua"},
         },
 
@@ -87,7 +88,9 @@ local gameLists = {
 
     PremiumVersion = {
         allowedGamesByCreatorId = { 
+	        [34208109] = {name = "Anime Card Collection", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/Uhalualua.lua"},
             [33548380] = {name = "Forsaken", url = "https://raw.githubusercontent.com/mabdu21/kjandsaddjadbhahayenajhsjbdwa/refs/heads/main/Fosaken.lua"},
+            [561990553] = {name = "Survive Zombie Arena", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/Azapqmsza.lua"},
             [16911831] = {name = "Guts & Blackpowder", url = "https://raw.githubusercontent.com/mabdu21/kjandsaddjadbhahayenajhsjbdwa/refs/heads/main/GAB.lua"},
             [660479131] = {name = "Fish a Brainrot", url = "https://raw.githubusercontent.com/mabdu21/kjandsaddjadbhahayenajhsjbdwa/refs/heads/main/FaB.lua"},  
             [36097751] = {name = "Steal A Fish", url = "https://raw.githubusercontent.com/mabdu21/kjandsaddjadbhahayenajhsjbdwa/refs/heads/main/Saf.lua"},  

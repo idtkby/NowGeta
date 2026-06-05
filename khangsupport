@@ -83,6 +83,10 @@ elseif pid == 99078474560152 then
     notify("Loading M.E.G")
     load("https://raw.githubusercontent.com/idtkby/Xd/main/M.e.g")
 
+elseif pid == 107206090336891 then
+    notify("Loading The Caves")
+    load("https://raw.githubusercontent.com/idtkby/Xd/main/thecaves.lua")
+
 elseif pid == 138103330716004 then
     notify("Loading After 3 AM")
     load("https://raw.githubusercontent.com/idtkby/Xd/refs/heads/main/After3am.lua")

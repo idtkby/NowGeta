@@ -17,13 +17,17 @@ end
 local placeId = tostring(game.PlaceId)
 local creatorId = tonumber(game.CreatorId)
 
--- 🎯 Danh sách game
+
 -- =========================================================
 -- 💾 Load Game List
 -- =========================================================
 local gameLists = {
     FreeVersion = {
         allowedGamesByCreatorId = {
+		    [32847485] = {name = "Demonology", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/dmeiemekeke.lua"}, 
+		    [4619164] = {name = "Sell Lemons", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/Ls.lua.lua"}, 
+			[989438225] = {name = "Build A Ring Farm", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/skidnyagahhwhwhbn%20barffff.txt"}, 
+	        [12249805] = {name = "Fix It Up!", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/jahahjgaxhxabbsgwh"}, 
             [1041977165] = {name = "Kick a Lucky Block", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/Nig.lua"}, 
             [35151686] = {name = "Get Fat to Splash", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/bgdhd.lua"}, 
             [35251154] = {name = "Driving Legends", url = "https://raw.githubusercontent.com/mabdu21/YWVATBAUBAK-FISH-IT/refs/heads/main/Bbn.lua"}, 
@@ -161,6 +165,7 @@ local gameLists = {
         }
     }
 }
+
 -- 🔍 Xác định script tương ứng
 local gameData =
 	gameLists.PremiumVersion.allowedGamesByPlaceId[placeId]

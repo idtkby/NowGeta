@@ -10,28 +10,41 @@ ScreenGui.Name = "ToolNameGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
--- Tạo Frame chính
+-- Tạo Frame chính (Giữ nguyên size của bạn)
 local Frame = Instance.new("Frame")
 Frame.Parent = ScreenGui
 Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Frame.Position = UDim2.new(0.5, -150, 0.1, 0)
 Frame.Size = UDim2.new(0, 200, 0, 50)
 Frame.Active = true
-Frame.Draggable = true -- ✅ Sử dụng drag đơn giản
+Frame.Draggable = true 
 
--- Nhãn Tool
+-- Nhãn Tool (Thu nhỏ chiều cao lại một chút để nhường chỗ cho thanh Check)
 local ToolLabel = Instance.new("TextLabel")
 ToolLabel.Parent = Frame
 ToolLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-ToolLabel.Size = UDim2.new(1, 0, 1, 0)
+ToolLabel.Size = UDim2.new(1, 0, 0, 50) -- Thu lại cao 30
 ToolLabel.Font = Enum.Font.SourceSans
 ToolLabel.Text = "Tool: None"
 ToolLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToolLabel.TextSize = 15
 ToolLabel.TextWrapped = true
 ToolLabel.TextStrokeTransparency = 0.5
+ToolLabel.BorderSizePixel = 0
 
--- Nút đóng X
+-- Thanh trạng thái Aura (Nằm gọn bên trong dưới nhãn Tool)
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Parent = Frame
+StatusLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+StatusLabel.Size = UDim2.new(1, 0, 0, 20) -- Cao 20, tổng cộng khít 50 của Frame
+StatusLabel.Position = UDim2.new(0, 0, 0, 52)
+StatusLabel.Font = Enum.Font.GothamSemibold
+StatusLabel.Text = "Aura Check: Waiting..."
+StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+StatusLabel.TextSize = 12
+StatusLabel.BorderSizePixel = 0
+
+-- Nút đóng X (Giữ nguyên y xì cũ)
 local CloseButton = Instance.new("TextButton")
 CloseButton.Parent = Frame
 CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
@@ -45,7 +58,7 @@ CloseButton.MouseButton1Click:Connect(function()
 	ScreenGui:Destroy()
 end)
 
--- Nút copy
+-- Nút copy (Giữ nguyên y xì cũ lên trên)
 local CopyButton = Instance.new("TextButton")
 CopyButton.Parent = Frame
 CopyButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -71,7 +84,7 @@ CopyButton.MouseButton1Click:Connect(function()
 			CopyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
 		end)
 		task.delay(1, function()
-			CopyButton.Text = "Copy Tool"
+			CopyButton.Text = "Copy Name"
 			isCooldown = false
 		end)
 	else
@@ -90,9 +103,21 @@ local function updateTool()
 		currentToolName = tool.Name
 		local displayName = #tool.Name > 25 and tool.Name:sub(1, 23) .. "..." or tool.Name
 		ToolLabel.Text = "Tool: " .. displayName
+		
+		-- Check TouchTransmitter cho Kill Aura
+		local hasTouchTransmitter = tool:FindFirstChildWhichIsA("TouchTransmitter", true)
+		if hasTouchTransmitter then
+			StatusLabel.Text = "Aura Status: VALID ✅"
+			StatusLabel.TextColor3 = Color3.fromRGB(50, 255, 50)
+		else
+			StatusLabel.Text = "Aura Status: INVALID ❌"
+			StatusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+		end
 	else
 		currentToolName = "None"
 		ToolLabel.Text = "Tool: None"
+		StatusLabel.Text = "Aura Check: Equip a tool"
+		StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 	end
 end
 
